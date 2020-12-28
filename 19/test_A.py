@@ -50,8 +50,8 @@ def isvalid( tbl, message):
             yield from gen2( tbl[rule], cursor)
 
     def gen1( lst, cursor):
-        if len(lst) == 1:
-            yield from gen0( lst[0], cursor)
+        if len(lst) == 0:
+            yield cursor
         else:
             for next_cursor in gen0( lst[0], cursor):
                 yield from gen1( lst[1:], next_cursor)
