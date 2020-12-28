@@ -120,9 +120,6 @@ def evaluate2( lst):
             
     return expr()
 
-
-
-
 def main( fp):
     seq = parse(fp)
     return sum( evaluate(lst) for lst in seq)
