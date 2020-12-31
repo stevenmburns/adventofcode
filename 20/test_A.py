@@ -293,54 +293,59 @@ def main2( fp):
     return s - len(matches)
 
 def test_rot90():
-    m = [[True,False,True],
-         [False,True,False]]
+    m = [[True,True],
+         [True,False],
+         [True,False]]
  
-    new_m = Board(m).rot90()
+    new_m = Board(m).dihederal(1)
 
-    assert [[True,False],
-            [False,True],
-            [True,False]] == new_m.m
+    assert [[True,False,False],
+            [True,True,True]] == new_m.m
 
 def test_rot180():
-    m = [[True,False,True],
-         [False,True,False]]
- 
+    m = [[True,True],
+         [True,False],
+         [True,False]]
+
     new_m = Board(m).dihederal(2)
 
-    assert [[False,True,False],
-            [True,False,True]] == new_m.m
+    assert [[False,True],
+            [False,True],
+            [True,True]] == new_m.m
 
 def test_rot270():
-    m = [[True,False,True],
-         [False,True,False]]
+    m = [[True,True],
+         [True,False],
+         [True,False]]
  
     new_m = Board(m).dihederal(3)
 
-    assert [[False,True],
-            [True,False],
+    assert [[True,True,True],
+            [False,False,True]] == new_m.m
+
+def test_mirrory():
+    m = [[True,True],
+         [True,False],
+         [True,False]]
+ 
+    new_m = Board(m).dihederal(4)
+
+    assert [[True,True],
+            [False,True],
             [False,True]] == new_m.m
 
 def test_mirrorx():
-    m = [[True,False,True],
-         [False,True,False]]
+    m = [[True,True],
+         [True,False],
+         [True,False]]
  
     new_m = Board(m).dihederal(6)
 
-    assert [[False,True,False],
-            [True,False,True]] == new_m.m
-
-def test_mirrory():
-    m = [[True,True,False],
-         [False,True,True]]
- 
-    new_m = Board(m).mirrory()
-
-    assert [[False,True,True],
-            [True,True,False]] == new_m.m
+    assert [[True,False],
+            [True,False],
+            [True,True]] == new_m.m
 
 
-@pytest.mark.skip
 def test_A():
     with open( "data0", "rt") as fp:
         assert 20899048083289 == main(fp)
@@ -349,11 +354,10 @@ def test_A2():
     with open( "data0", "rt") as fp:
         assert 273 == main2(fp)
 
-@pytest.mark.skip
 def test_C():
     with open( "data", "rt") as fp:
-        print(main(fp))
+        assert 17250897231301 == main(fp)
 
 def test_C2():
     with open( "data", "rt") as fp:
-        print(main2(fp))
+        assert 1576 == main2(fp)
