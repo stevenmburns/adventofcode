@@ -40,7 +40,6 @@ def step( cir):
     assert destination in seq[4:]
 
     idx = seq[4:].index(destination)
-    assert 0 <= idx <= 5
     
     print('idx', idx)
 
@@ -53,7 +52,7 @@ def step( cir):
 def main( fp):
     seq = parse(fp)
 
-    cir = Circle( seq,len(seq))
+    cir = Circle( seq, len(seq))
 
     for _ in range(100):
         cir = step(cir)
@@ -68,24 +67,27 @@ def main( fp):
 def main2( fp):
     seq = parse(fp)
 
-    cir = Circle( seq,len(seq))
+    cir = Circle( seq, 1000*1000)
 
-    for i in range(10000000):
-        if i % 100000 == 0:
+    for i in range( 20):
+        if i % 100 == 0:
             print(i)
         cir = step(cir)
 
-    seq = list(cir.seq)
+    seq = list(cir.q)
     idx = seq.index(1)
 
-    result = seq[idx+1:] + seq[0:idx]
+    result = seq[idx:] + seq[0:idx]
 
+    print( 'result[1]', result[1])
+    print( 'result[2]', result[2])
     return result[1]*result[2]
 
 def test_A():
-    assert '67384529' == main( '389125467')
-    #assert 149245887792 == main2( '389125467')
+    #assert '67384529' == main( '389125467')
+    assert 12 == main2( '389125467')
 
 def test_C():
-    print(main('952438716'))
+    pass
+    #print(main('952438716'))
 

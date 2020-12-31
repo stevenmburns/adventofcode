@@ -29,51 +29,47 @@ def parse(txt):
     seq = [ int(c) for c in txt]
     return seq
 
-def step( cir):
-    print('Step')
-    seq = list(cir.q)
+def step( cir, i=None):
+    n = len(cir.q)
+
     seq_0_1 = [ cir.q.popleft() for _ in range(1)]
     seq_1_4 = [ cir.q.popleft() for _ in range(3)]
-
-    assert seq_0_1 == seq[:1]
-    assert seq_1_4 == seq[1:4]
 
     destination = cir.minus1( seq_0_1[0])
     while destination in seq_1_4:
         destination = cir.minus1( destination)
 
-    destination2 = cir.minus1( seq[0])
-    while destination2 in seq[1:4]:
-        destination2 = cir.minus1( destination2)
-
-    assert destination2 == destination
-
     assert destination not in seq_0_1
     assert destination in cir.q
 
-    idx = cir.q.index(destination)
-    assert 0 <= idx <= 5
+    for (idx,x) in enumerate(reversed(cir.q)):
+        if destination == x:
+            break
+    idx = len(cir.q)-1-idx
+    print(f"idx: {idx} {i} {idx+i}")
+
     
-    print('idx', idx)
+
+
 
     assert destination in seq_0_1 or destination in cir.q
 
-    seq_4_idxp5 = [ cir.q.popleft() for _ in range(idx+5-4)]
+    print( n-(idx+5))
 
-    assert seq_4_idxp5 == seq[4:idx+5]
+    seq_idxp5 = [ cir.q.pop() for _ in range(n-(idx+5))]
+
+    #seq_4_idxp5 = [ cir.q.popleft() for _ in range(idx+5-4)]
+
+
+    for x in seq_1_4:
+        cir.q.append(x)
+
+    for x in reversed(seq_idxp5):
+        cir.q.append(x)
 
     for x in seq_0_1:
         cir.q.append(x)
 
-    for x in reversed( seq_1_4):
-        cir.q.appendleft(x)
-
-    for x in reversed( seq_4_idxp5):
-        cir.q.appendleft(x)
-
-    seq = seq[4:idx+5] + seq[1:4] + seq[idx+5:] + seq[:1]
-
-    assert seq == list(cir.q)
 
     return cir
 
@@ -95,24 +91,33 @@ def main( fp):
 def main2( fp):
     seq = parse(fp)
 
-    cir = Circle( seq,len(seq))
+    n = 1000*1000
+    nsteps = 200
 
-    for i in range(10000000):
-        if i % 100000 == 0:
-            print(i)
-        cir = step(cir)
+    cir = Circle( seq, n)
 
-    seq = list(cir.seq)
+    for i in range(nsteps):
+        if i % 100 == 0: print(i)
+        cir = step(cir,i)
+
+    seq = list(cir.q)
     idx = seq.index(1)
 
-    result = seq[idx+1:] + seq[0:idx]
+    result = seq[idx:] + seq[0:idx]
+
+    print( 'result[1]', result[1])
+    print( 'result[2]', result[2])
 
     return result[1]*result[2]
 
 def test_A():
-    assert '67384529' == main( '389125467')
-    #assert 149245887792 == main2( '389125467')
+    #assert '67384529' == main( '389125467')
+    assert 12 == main2( '389125467')
 
 def test_C():
-    print(main('952438716'))
+    pass
+    #print(main('952438716'))
+    #print(main2('952438716'))
 
+if __name__ == "__main__":
+    test_A()
