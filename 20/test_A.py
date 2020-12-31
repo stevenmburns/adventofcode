@@ -190,15 +190,8 @@ def main2( fp):
 
     # non_matching 'w' edges, assume square shape
     assert len(edges) % 4 == 0
-    for irow in range(1,len(edges)//4+1):
-        t = {}
-        for e in ['w']:
-            t[e] = []
-            for (k,v) in list(edges.items()):
-                for vv in v:
-                    if vv[1] == e:
-                        t[e].append( (k,vv[0]))
-
+    N = len(edges)//4 + 2
+    for irow in range(1,N):
         id, d = stitch[(irow-1,0)]
         ed = tbl[id].dihederal(d).edge('s')
         sig = ''.join( '#' if x else '.' for x in ed)
@@ -206,34 +199,98 @@ def main2( fp):
             if v[0] != id and v[2] == 'n':
                 stitch[(irow,0)] = v[0], v[1]
 
+    for icol in range(1,N):
+        id, d = stitch[(N-1,icol-1)]
+        ed = tbl[id].dihederal(d).edge('e')
+        sig = ''.join( '#' if x else '.' for x in ed)
+        for v in signatures[sig]:
+            if v[0] != id and v[2] == 'w':
+                stitch[(N-1,icol)] = v[0], v[1]
 
-    # lower left
-    t = {}
-    for e in ['w','s']:
-        t[e] = []
-        for (k,v) in list(corners.items()):
-            for vv in v:
-                if vv[1] == e:
-                    t[e].append( (k,vv[0]))
+    for irow in range(N-2,0,-1):
+        id, d = stitch[(irow+1,N-1)]
+        ed = tbl[id].dihederal(d).edge('n')
+        sig = ''.join( '#' if x else '.' for x in ed)
+        for v in signatures[sig]:
+            if v[0] != id and v[2] == 's':
+                stitch[(irow,N-1)] = v[0], v[1]
 
-    id, d = stitch[(len(edges)//4,0)]
-    ed = tbl[id].dihederal(d).edge('s')
-    sig = ''.join( '#' if x else '.' for x in ed)
-    for v in signatures[sig]:
-        if v[0] != id and v[2] == 'n':
-            stitch[(irow,0)] = v[0], v[1]
+    for icol in range(1,N):
+        id, d = stitch[(0,icol-1)]
+        ed = tbl[id].dihederal(d).edge('e')
+        sig = ''.join( '#' if x else '.' for x in ed)
+        for v in signatures[sig]:
+            if v[0] != id and v[2] == 'w':
+                stitch[(0,icol)] = v[0], v[1]
 
+    for irow in range(1,N-1):
+        for icol in range(1,N-1):
+            id0, d0 = stitch[(irow,icol-1)]
+            id1, d1 = stitch[(irow-1,icol)]
+            ed0 = tbl[id0].dihederal(d0).edge('e')
+            ed1 = tbl[id1].dihederal(d1).edge('s')
+            sig0 = ''.join( '#' if x else '.' for x in ed0)
+            sig1 = ''.join( '#' if x else '.' for x in ed1)
+            s0 = set()
+            for v in signatures[sig0]:
+                if v[0] != id0 and v[2] == 'w':
+                    s0.add( (v[0], v[1]))
+            s1 = set()
+            for v in signatures[sig1]:
+                if v[0] != id1 and v[2] == 'n':
+                    s1.add( (v[0], v[1]))
+            s = s0.intersection(s1)
+            assert len(s) == 1
+            stitch[(irow,icol)] = list(s)[0]
 
+    
+    master_id, master_d = stitch[(0,0)]
+    master = tbl[master_id].dihederal(master_d)
 
-    print(set(t['w']).intersection(set(t['s'])))
+    m = [ [False]*((master.ncols-2)*N) for _ in range((master.nrows-2)*N)]
+    for irow in range(0,N):
+        for icol in range(0,N):
+            c_id, c_d = stitch[(irow,icol)]
+            c = tbl[c_id].dihederal(c_d)
+            for jrow in range(1,c.nrows-1):
+                for jcol in range(1,c.ncols-1):
+                    m[irow*(c.nrows-2)+jrow-1][icol*(c.ncols-2)+jcol-1] = c.m[jrow][jcol]
 
+    big_board = Board(m)
 
+    ship_txt = """                  # 
+#    ##    ##    ###
+ #  #  #  #  #  #   """
+    m_ship = [ [x == '#' for x in row] for row in ship_txt.split('\n')]
+    assert len(m_ship[0]) == len(m_ship[1]) == len(m_ship[2])
 
-    print(stitch)
-    print(len(corners))
-    print(len(edges))
+    ship_board = Board(m_ship)
 
-    return 0
+    matches = set()
+
+    
+    for d in range(8):
+        flipped_ship_board = ship_board.dihederal(d)
+        for irow in range(big_board.nrows-flipped_ship_board.nrows+1):
+            for icol in range(big_board.ncols-flipped_ship_board.ncols+1):
+                match = True
+                for jrow in range(flipped_ship_board.nrows):
+                    for jcol in range(flipped_ship_board.ncols):
+                        if flipped_ship_board.m[jrow][jcol]:
+                            if not big_board.m[irow+jrow][icol+jcol]:
+                                match = False
+                if match:
+                    for jrow in range(flipped_ship_board.nrows):
+                        for jcol in range(flipped_ship_board.ncols):
+                            if flipped_ship_board.m[jrow][jcol]:
+                                if big_board.m[irow+jrow][icol+jcol]:
+                                    matches.add( (irow+jrow, icol+jcol))
+
+    s = 0
+    for row in big_board.m:
+        s += sum(1 for x in row if x)
+
+    return s - len(matches)
 
 def test_rot90():
     m = [[True,False,True],
@@ -283,17 +340,20 @@ def test_mirrory():
             [True,True,False]] == new_m.m
 
 
+@pytest.mark.skip
 def test_A():
     with open( "data0", "rt") as fp:
         assert 20899048083289 == main(fp)
 
 def test_A2():
     with open( "data0", "rt") as fp:
-        assert 0 == main2(fp)
+        assert 273 == main2(fp)
 
+@pytest.mark.skip
 def test_C():
     with open( "data", "rt") as fp:
         print(main(fp))
+
 def test_C2():
     with open( "data", "rt") as fp:
-        assert 0 == main2(fp)
+        print(main2(fp))
