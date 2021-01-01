@@ -59,7 +59,7 @@ class Board:
         new_m = [ [x for x in reversed(row)] for row in self.m]
         return Board(new_m)
 
-    def dihederal(self, idx):
+    def dihedral(self, idx):
         if idx//4 == 1:
             tmp = Board(self.mirrory().m)
         else:
@@ -112,7 +112,7 @@ def main( fp):
 
     for (k,v) in tbl.items():
         for d in range(8):
-            new_board = v.dihederal(d)
+            new_board = v.dihedral(d)
             for e in ['e','w','n','s']:
                 ed = new_board.edge(e)
                 triple = (k, d, e)
@@ -146,7 +146,7 @@ def main2( fp):
 
     for (k,v) in tbl.items():
         for d in range(8):
-            new_board = v.dihederal(d)
+            new_board = v.dihedral(d)
             for e in ['e','w','n','s']:
                 ed = new_board.edge(e)
                 triple = (k, d, e)
@@ -193,7 +193,7 @@ def main2( fp):
     N = len(edges)//4 + 2
     for irow in range(1,N):
         id, d = stitch[(irow-1,0)]
-        ed = tbl[id].dihederal(d).edge('s')
+        ed = tbl[id].dihedral(d).edge('s')
         sig = ''.join( '#' if x else '.' for x in ed)
         for v in signatures[sig]:
             if v[0] != id and v[2] == 'n':
@@ -201,7 +201,7 @@ def main2( fp):
 
     for icol in range(1,N):
         id, d = stitch[(N-1,icol-1)]
-        ed = tbl[id].dihederal(d).edge('e')
+        ed = tbl[id].dihedral(d).edge('e')
         sig = ''.join( '#' if x else '.' for x in ed)
         for v in signatures[sig]:
             if v[0] != id and v[2] == 'w':
@@ -209,7 +209,7 @@ def main2( fp):
 
     for irow in range(N-2,0,-1):
         id, d = stitch[(irow+1,N-1)]
-        ed = tbl[id].dihederal(d).edge('n')
+        ed = tbl[id].dihedral(d).edge('n')
         sig = ''.join( '#' if x else '.' for x in ed)
         for v in signatures[sig]:
             if v[0] != id and v[2] == 's':
@@ -217,7 +217,7 @@ def main2( fp):
 
     for icol in range(1,N):
         id, d = stitch[(0,icol-1)]
-        ed = tbl[id].dihederal(d).edge('e')
+        ed = tbl[id].dihedral(d).edge('e')
         sig = ''.join( '#' if x else '.' for x in ed)
         for v in signatures[sig]:
             if v[0] != id and v[2] == 'w':
@@ -227,8 +227,8 @@ def main2( fp):
         for icol in range(1,N-1):
             id0, d0 = stitch[(irow,icol-1)]
             id1, d1 = stitch[(irow-1,icol)]
-            ed0 = tbl[id0].dihederal(d0).edge('e')
-            ed1 = tbl[id1].dihederal(d1).edge('s')
+            ed0 = tbl[id0].dihedral(d0).edge('e')
+            ed1 = tbl[id1].dihedral(d1).edge('s')
             sig0 = ''.join( '#' if x else '.' for x in ed0)
             sig1 = ''.join( '#' if x else '.' for x in ed1)
             s0 = set()
@@ -245,13 +245,13 @@ def main2( fp):
 
     
     master_id, master_d = stitch[(0,0)]
-    master = tbl[master_id].dihederal(master_d)
+    master = tbl[master_id].dihedral(master_d)
 
     m = [ [False]*((master.ncols-2)*N) for _ in range((master.nrows-2)*N)]
     for irow in range(0,N):
         for icol in range(0,N):
             c_id, c_d = stitch[(irow,icol)]
-            c = tbl[c_id].dihederal(c_d)
+            c = tbl[c_id].dihedral(c_d)
             for jrow in range(1,c.nrows-1):
                 for jcol in range(1,c.ncols-1):
                     m[irow*(c.nrows-2)+jrow-1][icol*(c.ncols-2)+jcol-1] = c.m[jrow][jcol]
@@ -270,7 +270,7 @@ def main2( fp):
 
     
     for d in range(8):
-        flipped_ship_board = ship_board.dihederal(d)
+        flipped_ship_board = ship_board.dihedral(d)
         for irow in range(big_board.nrows-flipped_ship_board.nrows+1):
             for icol in range(big_board.ncols-flipped_ship_board.ncols+1):
                 match = True
@@ -297,7 +297,7 @@ def test_rot90():
          [True,False],
          [True,False]]
  
-    new_m = Board(m).dihederal(1)
+    new_m = Board(m).dihedral(1)
 
     assert [[True,False,False],
             [True,True,True]] == new_m.m
@@ -307,7 +307,7 @@ def test_rot180():
          [True,False],
          [True,False]]
 
-    new_m = Board(m).dihederal(2)
+    new_m = Board(m).dihedral(2)
 
     assert [[False,True],
             [False,True],
@@ -318,7 +318,7 @@ def test_rot270():
          [True,False],
          [True,False]]
  
-    new_m = Board(m).dihederal(3)
+    new_m = Board(m).dihedral(3)
 
     assert [[True,True,True],
             [False,False,True]] == new_m.m
@@ -328,7 +328,7 @@ def test_mirrory():
          [True,False],
          [True,False]]
  
-    new_m = Board(m).dihederal(4)
+    new_m = Board(m).dihedral(4)
 
     assert [[True,True],
             [False,True],
@@ -339,7 +339,7 @@ def test_mirrorx():
          [True,False],
          [True,False]]
  
-    new_m = Board(m).dihederal(6)
+    new_m = Board(m).dihedral(6)
 
     assert [[True,False],
             [True,False],
