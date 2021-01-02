@@ -156,7 +156,6 @@ def main2( fp):
                 signatures[sig].append( triple)
 
     non_matching = {}
-    matching = {}
 
     for (k,v) in signatures.items():
         assert len(v) in [4,8]
@@ -188,61 +187,33 @@ def main2( fp):
     stitch = {}
     stitch[(0,0)] = list(set(t['w']).intersection(set(t['n'])))[0]
 
-    # non_matching 'w' edges, assume square shape
+    def find_set( irow, icol, drow, dcol, e0, e1):
+        id, d = stitch[(irow-drow,icol-dcol)]
+        ed = tbl[id].dihedral(d).edge(e0)
+        sig = ''.join( '#' if x else '.' for x in ed)
+        matches = set()
+        for v in signatures[sig]:
+            if v[0] != id and v[2] == e1:
+                matches.add( (v[0],v[1]))
+        return matches
+    def get_singleton(s):
+        assert len(s) == 1
+        return list(s)[0]
+
+    # assume square shape
     assert len(edges) % 4 == 0
     N = len(edges)//4 + 2
     for irow in range(1,N):
-        id, d = stitch[(irow-1,0)]
-        ed = tbl[id].dihedral(d).edge('s')
-        sig = ''.join( '#' if x else '.' for x in ed)
-        for v in signatures[sig]:
-            if v[0] != id and v[2] == 'n':
-                stitch[(irow,0)] = v[0], v[1]
+        stitch[(irow,0)] = get_singleton(find_set(irow, 0, 1, 0, 's', 'n'))
 
     for icol in range(1,N):
-        id, d = stitch[(N-1,icol-1)]
-        ed = tbl[id].dihedral(d).edge('e')
-        sig = ''.join( '#' if x else '.' for x in ed)
-        for v in signatures[sig]:
-            if v[0] != id and v[2] == 'w':
-                stitch[(N-1,icol)] = v[0], v[1]
+        stitch[(0,icol)] = get_singleton(find_set(0, icol, 0, 1, 'e', 'w'))
 
-    for irow in range(N-2,0,-1):
-        id, d = stitch[(irow+1,N-1)]
-        ed = tbl[id].dihedral(d).edge('n')
-        sig = ''.join( '#' if x else '.' for x in ed)
-        for v in signatures[sig]:
-            if v[0] != id and v[2] == 's':
-                stitch[(irow,N-1)] = v[0], v[1]
-
-    for icol in range(1,N):
-        id, d = stitch[(0,icol-1)]
-        ed = tbl[id].dihedral(d).edge('e')
-        sig = ''.join( '#' if x else '.' for x in ed)
-        for v in signatures[sig]:
-            if v[0] != id and v[2] == 'w':
-                stitch[(0,icol)] = v[0], v[1]
-
-    for irow in range(1,N-1):
-        for icol in range(1,N-1):
-            id0, d0 = stitch[(irow,icol-1)]
-            id1, d1 = stitch[(irow-1,icol)]
-            ed0 = tbl[id0].dihedral(d0).edge('e')
-            ed1 = tbl[id1].dihedral(d1).edge('s')
-            sig0 = ''.join( '#' if x else '.' for x in ed0)
-            sig1 = ''.join( '#' if x else '.' for x in ed1)
-            s0 = set()
-            for v in signatures[sig0]:
-                if v[0] != id0 and v[2] == 'w':
-                    s0.add( (v[0], v[1]))
-            s1 = set()
-            for v in signatures[sig1]:
-                if v[0] != id1 and v[2] == 'n':
-                    s1.add( (v[0], v[1]))
-            s = s0.intersection(s1)
-            assert len(s) == 1
-            stitch[(irow,icol)] = list(s)[0]
-
+    for irow in range(1,N):
+        for icol in range(1,N):
+            s0 = find_set(irow,icol,0,1,'e','w')
+            s1 = find_set(irow,icol,1,0,'s','n')
+            stitch[(irow,icol)] = get_singleton(s0.intersection(s1))
     
     master_id, master_d = stitch[(0,0)]
     master = tbl[master_id].dihedral(master_d)
@@ -262,7 +233,7 @@ def main2( fp):
 #    ##    ##    ###
  #  #  #  #  #  #   """
     m_ship = [ [x == '#' for x in row] for row in ship_txt.split('\n')]
-    assert len(m_ship[0]) == len(m_ship[1]) == len(m_ship[2])
+    assert len(m_ship) == 3 and len(m_ship[0]) == len(m_ship[1]) == len(m_ship[2])
 
     ship_board = Board(m_ship)
 
@@ -344,6 +315,26 @@ def test_mirrorx():
     assert [[True,False],
             [True,False],
             [True,True]] == new_m.m
+
+def test_mirrord():
+    m = [[True,True],
+         [True,False],
+         [True,False]]
+ 
+    new_m = Board(m).dihedral(5)
+
+    assert [[True,True,True],
+            [True,False,False]] == new_m.m
+
+def test_mirrora():
+    m = [[True,True],
+         [True,False],
+         [True,False]]
+ 
+    new_m = Board(m).dihedral(7)
+
+    assert [[False,False,True],
+            [True,True,True]] == new_m.m
 
 
 def test_A():
