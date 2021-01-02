@@ -95,16 +95,12 @@ def step2( cir):
     while destination in seq_1_4:
         destination = cir.minus1(destination)
 
-    print(f'destination: {destination}')
-
     assert destination != cir.ptr.el
     assert destination not in seq_1_4
 
     # segments: seq_1_4[-1].next to destination
     # seq_1_4[0] to seq_1_4[-1]
     # destination.next to cir.ptr
-
-
 
     def connect( u, v):
         pu, pv = cir.nodes[u], cir.nodes[v]
@@ -114,15 +110,6 @@ def step2( cir):
     u0 = cir.nodes[seq_1_4[-1]].next.el
     u1 = cir.nodes[destination].next.el
     u2 = cir.ptr.el
-
-    print(f'u0: {u0}')
-
-    segment0 = []
-    q = cir.nodes[u0]
-    while q.el != u1:
-        segment0.append(q.el)
-        q = q.next
-    print( f'segment0: {segment0}')
 
     connect( u2, u0)
     connect( destination, seq_1_4[0])
@@ -165,19 +152,7 @@ def main2( fp, n=1000000):
         if i % (n/10) == 0:
             print(i)
 
-        s = list_to_seq(cir)
-        cir_ref = Circle( s, len(s))
-        print( '='*80)
-        print(list(cir_ref.q))
-        print(list_to_seq(cir))
-        print('step')
-        cir_ref = step(cir_ref)
         cir = step2(cir)
-        print(list(cir_ref.q))
-        s = list_to_seq(cir)
-        print(s)
-        print( '='*80)
-        assert s == list(cir_ref.q), i
 
     if False:
         seq = list(cir.q)
@@ -192,14 +167,15 @@ def main2( fp, n=1000000):
             cir.ptr = cir.ptr.next
         return cir.ptr.next.el * cir.ptr.next.next.el
 
+@pytest.mark.skip
 def test_A():
     assert '67384529' == main( '389125467')
     assert 5568 == main2( '389125467',n=100)
-    #assert 430728 == main2( '389125467',n=1000)
-    #assert 149245887792 == main2( '389125467')
+    assert 430728 == main2( '389125467',n=1000)
+    assert 149245887792 == main2( '389125467')
 
-@pytest.mark.skip
+
 def test_C():
     pass
     print(main('952438716'))
-
+    print(main2('952438716'))
