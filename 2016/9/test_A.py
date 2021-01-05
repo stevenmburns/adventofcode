@@ -152,3 +152,8 @@ def test_AA3():
 def test_B():
     with open('data', 'rt') as fp:
         print(main(fp))
+
+#@pytest.mark.skip
+def test_BB():
+    with open('data', 'rt') as fp:
+        print(main2(fp))
