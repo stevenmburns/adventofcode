@@ -33,15 +33,6 @@ class Output:
     def id(self):
         return f"Output({self.num})"
 
-class Input:
-    def __init__(self, value):
-        self.value = value
-    def __repr__(self):
-        return f"Input(value={self.value})"
-    def id(self):
-        return f"Input({self.value})"
-
-
 def parse(fp):
     bots = {}
     outputs = {}
@@ -121,13 +112,8 @@ def main(fp):
             
     print('topo_order:',[ x.num for x in topo_order])
 
-    build_incoming_edges(bots)
-
     for v in topo_order:
         print(v)
-        for u in list(v.incoming_edges):
-            print('\t',bots[u])
-            pass
         assert len(v.values) == 2, v
         v.lo.values.append(min(*v.values))
         v.hi.values.append(max(*v.values))
