@@ -97,20 +97,7 @@ def main(fp):
                 return False
         return True
 
-    G = nx.Graph()
-    print("Adding nodes")
-    valid_states = set()
-    for state in states:
-        if not check_floors(state): continue
-        G.add_node(state)
-        valid_states.add(state)
-
-    print('Valid States:', len(valid_states))
-
-    print("Adding edges")
-    nedges = 0
-
-    for state in valid_states:
+    def gen_next_states( state):
         moves_from_state = []
         elevator_floor = state[0]
         objects_on_elevator_floor = [ idx for idx in range(1,len(state)) if state[idx] == elevator_floor]
@@ -129,32 +116,41 @@ def main(fp):
                 next_state = tuple(lst_state)
 
                 if check_elevator(subset) and check_floors(next_state):
-                    G.add_edge(state,next_state)
-                    if nedges % 100000 == 0: print(f'nedges: {nedges}')
-                    nedges += 1
+                    yield next_state
 
+    def get_init_state():
+        init_state_lst = [None]*len(entries)
+        init_state_lst[0] = 1
+        for floor,lst in seq:
+            for pair in lst:
+                idx = entries.index(pair)
+                print( pair, entries, idx)
+                init_state_lst[idx] = floor
 
-    print(entries)
-    print('nstates:', len(states))
+        return tuple(init_state_lst)
 
-    init_state_lst = [None]*len(entries)
-    init_state_lst[0] = 1
-    for floor,lst in seq:
-        for pair in lst:
-            idx = entries.index(pair)
-            print( pair, entries, idx)
-            init_state_lst[idx] = floor
+    def get_final_state():
+        final_state_lst = [4]*len(entries)
+        return tuple(final_state_lst)
 
-    init_state = tuple(init_state_lst)
-    assert init_state in states
+    G = nx.Graph()
+    print("Adding nodes")
+    valid_states = set()
+    for state in states:
+        if check_floors(state):
+            valid_states.add(state)
+            G.add_node(state)
 
-    final_state_lst = [4]*len(entries)
-    final_state = tuple(final_state_lst)
-    assert final_state in states
+    print('Valid States:', len(valid_states))
+
+    print("Adding edges")
+    for state in valid_states:
+        for next_state in gen_next_states(state):
+            G.add_edge(state,next_state)
 
     print("Starting SSP")
-    lengths = nx.single_source_shortest_path_length(G,init_state) 
-    return lengths[final_state]
+    lengths = nx.single_source_shortest_path_length(G,get_init_state()) 
+    return lengths[get_final_state()]
 
 def test_A():
     with open('data0', 'rt') as fp:
