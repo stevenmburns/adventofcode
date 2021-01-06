@@ -13,6 +13,7 @@ def parse(fp):
 
     for line in fp:
         line = line.rstrip('\n')
+        print(line)
         m = p_empty.match(line)
         if m:
             seq.append( (m.groups()[0], []))
@@ -51,13 +52,11 @@ def parse(fp):
     return new_seq, elements
 
 import itertools
-import networkx as nx
 
 def main(fp):
     seq, elements = parse(fp)
-
+    print(seq,elements)
     entries = ['E']+list( itertools.product( list(range(len(elements))),'MG'))
-    states = list( itertools.product( *([list(range(1,5)) ]*len(entries))))
 
     def check_elevator( elevator_objects):
         by_type = { 'G': [], 'M': []}
@@ -133,25 +132,31 @@ def main(fp):
         final_state_lst = [4]*len(entries)
         return tuple(final_state_lst)
 
-    G = nx.Graph()
-    print("Adding nodes")
+    init_state = get_init_state()
+    assert check_floors(init_state)
+    final_state = get_final_state()
+
+    path_length = 0
     valid_states = set()
-    for state in states:
-        if check_floors(state):
-            valid_states.add(state)
-            G.add_node(state)
+    frontier_states = set()
+    frontier_states.add(get_init_state())
 
-    print('Valid States:', len(valid_states))
+    while True:
+        valid_states = valid_states.union(frontier_states)
+        new_frontier_states = set()
+        for state in frontier_states:
+            for next_state in gen_next_states(state):
+                if next_state not in valid_states:
+                    new_frontier_states.add(next_state)
+        path_length += 1
+        print( f'path_length: {path_length} new_frontier_states: {len(new_frontier_states)}')
 
-    print("Adding edges")
-    for state in valid_states:
-        for next_state in gen_next_states(state):
-            G.add_edge(state,next_state)
+        if final_state in new_frontier_states:
+            return path_length
+        frontier_states = new_frontier_states
+            
 
-    print("Starting SSP")
-    lengths = nx.single_source_shortest_path_length(G,get_init_state()) 
-    return lengths[get_final_state()]
-
+@pytest.mark.skip
 def test_A():
     with open('data0', 'rt') as fp:
         assert 11 == main(fp)
@@ -159,4 +164,8 @@ def test_A():
 @pytest.mark.skip
 def test_B():
     with open('data', 'rt') as fp:
+        print(main(fp))
+
+def test_C():
+    with open('data_big', 'rt') as fp:
         print(main(fp))
