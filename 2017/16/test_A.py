@@ -101,36 +101,36 @@ def compute_repeat(cycles):
                 result += cycle[j]
         assert len(result) == idx+1
     
-
 def main2(fp,n):
 
     seq = parse(fp)
 
     a = [ chr(ord('a')+x) for x in range(n)]
-    aa = tuple(a)
 
-    memo = {}
+    dance_results = []
+    reached = set()
+    def add(a):
+        aa = tuple(a)
+        if aa in reached:
+            return True
+        reached.add(aa)
+        dance_results.append(aa)
+        return False
 
-    memo[aa] = len(memo)
-
+    add(a)
     for _ in range(1000000):
         a = dance( n,seq,a)
-        aa = tuple(a)
-        if aa in memo:
+        if add(a):
             break
-        else:
-            memo[aa] = len(memo)
 
-    inv_memo = {}
-    for k,v in memo.items():
-        inv_memo[v] = k
+    assert len(reached) == len(dance_results)
     
-    print( len(memo))
+    print( len(dance_results))
 
     k = 1000*1000*1000
-    q = k % len(memo)
+    q = k % len(dance_results)
 
-    return ''.join( inv_memo[q])
+    return ''.join( dance_results[q])
 
 @pytest.mark.skip
 def test_A():
