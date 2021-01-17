@@ -47,6 +47,22 @@ def dance( n, seq, a):
             a[i], a[j] = a[j], a[i]
     return a
 
+def dance0( n, seq, a):
+    for cmd in seq:
+        if cmd[0] == 's':
+            i = (-cmd[1]) % n 
+            a = a[i:] + a[:i]
+        elif cmd[0] == 'x':
+            i,j = cmd[1], cmd[2]
+            a[i], a[j] = a[j], a[i]
+    return a
+
+def dance1( n, seq, a):
+    for cmd in seq:
+        if cmd[0] == 'p':
+            i,j = a.index(cmd[1]), a.index(cmd[2])
+            a[i], a[j] = a[j], a[i]
+    return a
 
 def main(fp,n,repeat=1):
     seq = parse(fp)
@@ -56,15 +72,22 @@ def main(fp,n,repeat=1):
     for _ in range(repeat):
         a = dance(n,seq,a)
 
-    return ''.join(a)
+    result = a[:]
 
-"""
-abcdefghijklmnop
-kpfonjglcibaedhm
+    if True:
+        a = [ chr(ord('a')+x) for x in range(n)]
 
-(akbpmendohl)(cfji)(g)
+        for _ in range(repeat):
+            a = dance0(n,seq,a)
 
-"""
+        for _ in range(repeat):
+            a = dance1(n,seq,a)
+
+        result2 = a[:]
+
+        assert result == result2
+
+    return ''.join(result)
 
 def find_cycles( s):
     ss = [ ord(c) - ord('a') for c in s]
@@ -89,18 +112,6 @@ def test_find_cycles():
 def test_find_cycles():
     assert ['akbpmendohl','cfji','g'] == find_cycles( 'kpfonjglcibaedhm')
 
-def compute_repeat(cycles):
-    s = 'abcdefghijklmnop'
-
-    result = ''
-    for idx,x in enumerate(s):
-        for cycle in cycles:
-            if x in cycle:
-                i = cycle.index(x)
-                j = (i+k) % len(cycle)
-                result += cycle[j]
-        assert len(result) == idx+1
-    
 def main2(fp,n):
 
     seq = parse(fp)
@@ -132,6 +143,37 @@ def main2(fp,n):
 
     return ''.join( dance_results[q])
 
+def compute_repeat(cycles, s, k=1000000000):
+    result = ''
+    for idx,c in enumerate(s):
+        for cycle in cycles:
+            if c in cycle:
+                i = cycle.index(c)
+                j = (i+k) % len(cycle)
+                result += cycle[j]
+        assert len(result) == idx+1
+    return ''.join( result)
+
+def main2alt(fp,n):
+
+    seq = parse(fp)
+
+    a = [ chr(ord('a')+x) for x in range(n)]
+
+    a0 = dance0( n, seq, a)
+
+    cycles0 = find_cycles( a0)
+    s0 = compute_repeat( cycles0, ''.join(chr(ord('a')+x) for x in range(n)))
+
+    a = [ chr(ord('a')+x) for x in range(n)]    
+
+    a1 = dance1( n, seq, a)
+
+    cycles1 = find_cycles( a1)
+    s1 = compute_repeat( cycles1, s0)
+
+    return s1
+
 @pytest.mark.skip
 def test_A():
     with open("data0","rt") as fp:
@@ -142,6 +184,15 @@ def test_B():
     with open("data","rt") as fp:
         print( main(fp,16))
 
+@pytest.mark.skip
+def test_B0():
+    with open("data","rt") as fp:
+        print( main(fp,16,repeat=100))
+
 def test_BB():
     with open("data","rt") as fp:
         print(main2(fp,16))
+
+def test_C():
+    with open("data","rt") as fp:
+        print(main2alt(fp,16))
