@@ -157,22 +157,14 @@ def compute_repeat(cycles, s, k=1000000000):
 def main2alt(fp,n):
 
     seq = parse(fp)
+    s = ''.join(chr(ord('a')+x) for x in range(n))
 
-    a = [ chr(ord('a')+x) for x in range(n)]
-
-    a0 = dance0( n, seq, a)
-
+    a0 = dance0( n, seq, list(s))
     cycles0 = find_cycles( a0)
-    s0 = compute_repeat( cycles0, ''.join(chr(ord('a')+x) for x in range(n)))
-
-    a = [ chr(ord('a')+x) for x in range(n)]    
-
-    a1 = dance1( n, seq, a)
-
+    a1 = dance1( n, seq, list(s))
     cycles1 = find_cycles( a1)
-    s1 = compute_repeat( cycles1, s0)
 
-    return s1
+    return compute_repeat( cycles1, compute_repeat( cycles0, s))
 
 @pytest.mark.skip
 def test_A():
