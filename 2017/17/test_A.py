@@ -25,33 +25,30 @@ class Node:
 def main2(steps_per_insert, total_times):
 
     def prnt( ptr):
-        result = [ptr.nxt.nm]
-        q = ptr.nxt.nxt
-        while q != ptr.nxt:
-            result.append(q.nm)
-            q = q.nxt
+        result = [nxt[ptr]]
+        q = nxt[nxt[ptr]]
+        while q != nxt[ptr]:
+            result.append(q)
+            q = nxt[q]
         print(result,end='')
 
-    zero = Node(0)
-    zero.nxt = zero
-    ptr = zero
-    prnt(ptr); print( '', zero.nxt.nm)
+    prnt(ptr); print( '', nxt[zero])
 
     nxt = [-1] * (total_times+1)
-
+    zero = 0
+    nxt[0] = 0
 
     for i in range(1,total_times+1):
         if i % 100000 == 0:
             print(i)
         for _ in range(steps_per_insert):
-            ptr = ptr.nxt
-        q = Node(i)
-        q.nxt = ptr.nxt
-        ptr.nxt = q
-        ptr = q
+            ptr = nxt[ptr]
+        nxt[i] = nxt[ptr]
+        nxt[ptr] = i
+        ptr = i
         prnt(ptr); print( '', zero.nxt.nm)
 
-    return zero.nxt.nm
+    return nxt[zero]
 
 def test_A0():
     print( main2( 345, 20))
