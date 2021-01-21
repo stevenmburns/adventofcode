@@ -5,6 +5,8 @@ import re
 import itertools
 from collections import deque
 
+import array
+
 def step( a, steps_per_insert, i):
     k = (1+steps_per_insert) % len(a)
     return [i] + a[k:] + a[:k]
@@ -24,6 +26,8 @@ class Node:
 
 def main2(steps_per_insert, total_times):
 
+    nxt = array.array('l',[-1] * (total_times+1))
+
     def prnt( ptr):
         result = [nxt[ptr]]
         q = nxt[nxt[ptr]]
@@ -32,11 +36,10 @@ def main2(steps_per_insert, total_times):
             q = nxt[q]
         print(result,end='')
 
-    prnt(ptr); print( '', nxt[zero])
-
-    nxt = [-1] * (total_times+1)
     zero = 0
     nxt[0] = 0
+    #prnt(zero); print( '', nxt[zero])
+    ptr = nxt[0]
 
     for i in range(1,total_times+1):
         if i % 100000 == 0:
@@ -46,12 +49,14 @@ def main2(steps_per_insert, total_times):
         nxt[i] = nxt[ptr]
         nxt[ptr] = i
         ptr = i
-        prnt(ptr); print( '', zero.nxt.nm)
+        #prnt(ptr); print( '', nxt[zero])
 
     return nxt[zero]
 
 def test_A0():
-    print( main2( 345, 20))
+    print( main2( 345, 50*1000*1000))
+
+@pytest.mark.skip
 def test_AA0():
     print( main( 345, 20))
 
@@ -62,3 +67,6 @@ def test_A():
 @pytest.mark.skip
 def test_B():
     print( main( 345, 2017))
+
+if __name__ == "__main__":
+    print( main2( 345, 50*1000*1000))    
