@@ -122,6 +122,10 @@ def main2(fp):
         for _ in range(3):
             turn_right()
 
+    def turn_back():
+        for _ in range(2):
+            turn_right()
+
     count_infections = 0
 
     def get_state( cursor):
@@ -132,22 +136,27 @@ def main2(fp):
 
     def burst():
         nonlocal cursor, count_infections
-        if get_state(cursor) == 2:
-            turn_right()
-        else:
+        s = get_state(cursor)
+        if s == 0:
             turn_left()
-
-        if get_state(cursor) == 0:
-            state[cursor] = 2
+        elif s == 1:
             count_infections += 1
+        elif s == 2:
+            turn_right()
+        elif s == 3:    
+            turn_back()
         else:
-            state[cursor] = 0
+            assert False, s
+
+        state[cursor] = (s+1)%4
 
         cursor = cursor[0] + dir[0], cursor[1] + dir[1]
 
 
     counts = [count_infections]
-    for i in range(10000):
+    for i in range(10000000):
+        if i % 100000 == 0:
+            print(i)
         burst()
         counts.append(count_infections)
 
@@ -173,13 +182,11 @@ def test_B():
 def test_A():
     with open("data0", "rt") as fp:
         counts = main2(fp)
-        assert 5 == counts[7]
-        assert 41 == counts[70]
-        assert 5587 == counts[10000]
-
+        assert 26 == counts[100]
+        assert 2511944 == counts[10000000]
 
 #@pytest.mark.skip
 def test_B():
     with open("data", "rt") as fp:
         counts = main2(fp)
-        print(counts[10000])
+        print(counts[10000000])
