@@ -53,8 +53,7 @@ def main(fp):
         new_frontier = set()
         for state in frontier:
             node, remaining_edges, cost = state
-            for tup in seq:
-                if tup not in remaining_edges: continue
+            for tup in remaining_edges:
                 if tup[0] == node:
                     new_state = tup[1], rm(remaining_edges,tup), cost+tup[0]+tup[1]
                     new_frontier.add(new_state)
@@ -99,7 +98,6 @@ def main2(fp):
         return frozenset(s)
 
     while frontier:
-        print( len(frontier))
         new_frontier = set()
         for state in frontier:
             node, remaining_edges, cost = state
@@ -112,7 +110,28 @@ def main2(fp):
                     new_state = tup[0], rm(remaining_edges,tup), cost+tup[0]+tup[1]
                     new_frontier.add(new_state)
 
+        costs = {}
+        for state in new_frontier:
+            node, remaining_edges, cost = state
+            k = (node, remaining_edges)
+            if k not in costs:
+                costs[k] = cost
+            else:
+                costs[k] = max(costs[k],cost)
+        
+        before = len(new_frontier)
+        new_frontier = set()
+        for k,v in costs.items():
+            (node, remaining_edges) = k
+            new_frontier.add( (node, remaining_edges, costs[k]))
+        print( before, '->', len(new_frontier))
+                
+        assert not reached.intersection(frontier)
+
         reached = reached.union(frontier)
+        assert not new_frontier.intersection(frontier)
+        assert not new_frontier.intersection(reached)
+
         frontier = new_frontier.difference(reached)
 
 
@@ -141,7 +160,7 @@ def test_AA():
 #@pytest.mark.skip
 def test_BB():
     with open("data","rt") as fp:
-        print(main2(fp))
+        assert 1841 == main2(fp)
 
 
 
