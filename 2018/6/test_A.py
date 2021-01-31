@@ -7,102 +7,125 @@ from collections import defaultdict
 def parse(fp):
 
     seq = []
+    p = re.compile(r'^(\d+), (\d+)$')
 
     for line in fp:
         line = line.rstrip('\n')
-        seq.append(line)
+        m = p.match(line)
+        assert m
+        seq.append( (int(m.groups()[0]), int(m.groups()[1])))
 
-    assert len(seq) == 1
-
-    return seq[0]
-
-def annihilate( x, y):
-    return x.lower() == y.lower() and (x.isupper() and y.islower() or x.islower() and y.isupper())
-
-
-def check(line):
-    for i in range(1,len(line)):
-        if annihilate( line[i-1], line[i]):
-            return False
-    return True
-
-def step(line):
-
-    lst = list(line)
-    if not lst:
-        return ''
-
-    nlst = [lst[0]]
-    for idx in range(1,len(lst)):
-        if nlst and annihilate( nlst[-1], lst[idx]):
-            nlst.pop()
-        else:
-            nlst.append(lst[idx])
-        #print(''.join(nlst),idx,''.join(lst),lst[idx])
-
-    return ''.join(nlst)
-
-
-def simple(line):
-    s = line
-    while True:
-        news = step(s)
-        if len(s) == len(news):
-            return news
-        s = news
+    return seq
 
 def main(fp):
-    line = parse(fp)
-    print(len(line))
+    seq = parse(fp)
 
-    result = simple(line)
+    mx, my, Mx, My = None, None, None, None
 
-    assert check(result)
+    for x,y in seq:
+        if mx is None or x < mx: mx = x
+        if Mx is None or x > Mx: Mx = x
+        if my is None or y < my: my = y
+        if My is None or y > My: My = y
 
-    return len(result)
+    print(mx,my,Mx,My)
 
-def main2(fp):
-    line = parse(fp)
-    print(len(line))
+    dx,dy = Mx-mx, My-my
+    llx, lly, urx, ury = mx-2*dx,my-2*dy,Mx+2*dx,My+2*dy
 
-    units = set()
-    for c in line:
-        units.add(c.lower())
+    print(llx,lly,urx,ury)
 
-    m = None
-    for u in units:
-        lst = []
-        for c in line:
-            if c.lower() != u:
-                lst.append(c)
+    tbl = {}
+    for x in range(llx,urx+1):
+        print( f'working on x {x}')
+        for y in range(lly,ury+1):
+            smallest = []
+            best = None
+            for idx,(xx,yy) in enumerate(seq):
+                dist = abs(x-xx) + abs(y-yy)
+                if best is None:
+                    smallest = [idx]
+                    best = dist
+                elif best == dist:
+                    smallest.append(idx)
+                elif best > dist:
+                    best = dist
+                    smallest = [idx]
+            tbl[ (x,y)] = None if len(smallest) != 1 else smallest[0]
 
-        nline = ''.join(lst)
-        result = simple(nline)
-        #print(u, line, nline, result)
-        assert check(result)
+    on_boundary = set()
+    for x in range(llx,urx+1):
+        for y in [lly,ury]:
+            cand = tbl[(x,y)]
+            if cand is not None:
+                on_boundary.add(cand)
+    for y in range(lly,ury+1):
+        for x in [llx,urx]:
+            cand = tbl[(x,y)]
+            if cand is not None:
+                on_boundary.add(cand)
 
-        cand = len(result)
-        if m is None or cand < m: m = cand
+    print(on_boundary)
 
-    return m
+    counts = defaultdict(int)
+    for (x,y), v in tbl.items():
+        if v is not None and v not in on_boundary:
+            counts[v] += 1
 
+    result = max( v for v in counts.values())
+
+    print(counts, result)
+
+    return result
+
+def main2(fp,limit):
+    seq = parse(fp)
+
+    mx, my, Mx, My = None, None, None, None
+
+    for x,y in seq:
+        if mx is None or x < mx: mx = x
+        if Mx is None or x > Mx: Mx = x
+        if my is None or y < my: my = y
+        if My is None or y > My: My = y
+
+    print(mx,my,Mx,My)
+
+    dx, dy = Mx-mx, My-my
+    llx, lly, urx, ury = mx-1*dx,my-1*dy,Mx+1*dx,My+1*dy
+
+    print(llx,lly,urx,ury)
+
+    good = set()
+    for x in range(llx,urx+1):
+        if x % 100 == 0:
+            print( f'working on x {x}')
+        for y in range(lly,ury+1):
+            sum = 0
+            for xx,yy in seq:
+                dist = abs(x-xx) + abs(y-yy)
+                sum += dist
+            if sum < limit:
+                good.add((x,y))
+
+    return len(good)
 
 @pytest.mark.skip
 def test_A():
     with open('data0', 'rt') as fp:
-        assert 10 == main(fp)
-
+        assert 17 == main(fp)
+ 
 @pytest.mark.skip
 def test_B():
     with open('data', 'rt') as fp:
         print(main(fp))
 
 #@pytest.mark.skip
-def test_A():
+def test_AA():
     with open('data0', 'rt') as fp:
-        assert 4 == main2(fp)
+        assert 16 == main2(fp,32)
 
 #@pytest.mark.skip
-def test_B():
+def test_BB():
     with open('data', 'rt') as fp:
-        print(main2(fp))
+        print(main2(fp,10000))
