@@ -4,80 +4,117 @@ import re
 import itertools
 from collections import defaultdict
 
-def parse(fp):
-    seq = []
-    p = re.compile('^position=<\s*((|-)\d+),\s*((|-)\d+)\s*> velocity=<\s*((|-)\d+),\s*((|-)\d+)\s*>\s*$')
-    for line in fp:
-        line = line.rstrip('\n')
-        m = p.match(line)
-        assert m
-        
-        position = int(m.groups()[0]), int(m.groups()[2])
-        velocity = int(m.groups()[4]), int(m.groups()[6])
+def pl(p,sn):
+    x,y = p
+    rackID = x + 10
+    result = rackID*y
+    result += sn
+    result *= rackID
+    result //= 100
+    result %= 10
+    result -= 5
+    return result
 
-        seq.append( (position,velocity))
-
-    return seq
-
-
-def main(fp):
-    seq = parse(fp)
-    print(seq)
-
-    values = []
-    for t in range(20000):
-        sum_sq = 0,0
-        sum = 0,0
-        for p, v in seq:
-            pp = p[0]+v[0]*t, p[1]+v[1]*t
-            sum_sq = sum_sq[0] + pp[0]**2, sum_sq[1] + pp[1]**2
-            sum = sum[0] + pp[0], sum[1] + pp[1]
-        
-        n = len(seq)
-        x_dist2 = sum_sq[0]/n - (sum[0]/n)**2
-        y_dist2 = sum_sq[1]/n - (sum[1]/n)**2
-
-        values.append( (x_dist2+y_dist2, t))
-
-    """
-    sum_i (x_i - x_)^2 = sum_i x_i ** 2 - 2 * x_i * x_ + x_ ** 2
-
-    n * x_ = sum_i x_i
-
-    sum_i (x_i ** 2) - 2 * (sum_i (x_i)) ** 2 / n + (sum_i x_i) ** 2  / n**2  
-"""
-
-    min_d, min_t = min(values)
-
-    sky = defaultdict(lambda: '.')
-
-    llx, lly, urx, ury = None, None, None, None
-
-    for p,v in seq:
-        pp = p[0]+v[0]*min_t, p[1]+v[1]*min_t
-        sky[pp] = '#'
-
-        if llx is None or llx > pp[0]: llx = pp[0]
-        if lly is None or lly > pp[1]: lly = pp[1]
-        if urx is None or urx < pp[0]: urx = pp[0]
-        if ury is None or ury < pp[1]: ury = pp[1]
-
-    print(llx,lly,urx,ury)
+def main(sn):
+    n = 300
+    best = None
+    best_p = None
+    for x in range(1,n+1-3+1):
+        for y in range(1,n+1-3+1):
+            sum = 0
+            for xx in range(x,x+3):
+                for yy in range(y,y+3):
+                    sum += pl( (xx,yy), sn)
+            if best is None or sum > best:
+                best = sum
+                best_p = x,y
     
-    for y in range(lly,ury+1):
-        line = ''
-        for x in range(llx,urx+1):
-            line += sky[(x,y)]
-        print(line)
-            
+    print( best, best_p)
 
-    return min_t
+    return best_p
 
-def test_A():
-    with open("data0","rt") as fp:
-        assert 3 == main(fp)
+def build_ctbl(sn,n):
+    ctbl = defaultdict(int)
+    for x in range(n+1,0,-1):
+        for y in range(n+1,0,-1):
+            sum = 0
+            if x == n+1 or y == n+1:
+                pass
+            else:
+                sum += pl( (x,y), sn)
+                sum += ctbl[ (x,y+1)]
+                sum += ctbl[ (x+1,y)]
+                sum -= ctbl[ (x+1,y+1)]
+            ctbl[ (x,y)] = sum
+    return ctbl
+
+def build_ctbl_slow(sn,n):
+    ctbl = {}
+    for x in range(n+1,0,-1):
+        print(x)
+        for y in range(n+1,0,-1):
+            sum = 0 
+            for xx in range(x,n+1):
+                for yy in range(y,n+1):
+                    sum += pl( (xx,yy), sn)
+            ctbl[(x,y)] = sum
+    return ctbl
+
+
+def main2(sn):
+    n = 300
+    best = None
+    best_p = None
+    best_k = None
+
+    ctbl = build_ctbl(sn,n)
+
+    for k in range(1,n):
+        if k % 20 == 0:
+            print(f'k: {k}')
+        for x in range(1,n+1-k+1):
+            for y in range(1,n+1-k+1):
+                sum = ctbl[ (x,y)] + ctbl[(x+k,y+k)]-ctbl[(x+k,y)]-ctbl[(x,y+k)]
+                if best is None or sum > best:
+                    best = sum
+                    best_p = x,y
+                    best_k = k
+    
+    print( best, best_p, best_k)
+
+    return best_p[0], best_p[1], best_k
+
+def test_ctbl():
+    n = 3
+    assert build_ctbl( 8, 3) == build_ctbl_slow( 8, 3)
+
+def test_pl0():
+    assert 4 == pl( (3,5), 8)
+def test_pl1():
+    assert -5 == pl( (122,79), 57)
+def test_pl2():
+    assert  0 == pl( (217,196), 39)
+def test_pl3():
+    assert  4 == pl( (101,153), 71)
+
+@pytest.mark.skip
+def test_A0():
+    assert (33,45) == main(18)
+@pytest.mark.skip
+def test_A1():
+    assert (21,61) == main(42)
+
+#@pytest.mark.skip
+def test_AA0():
+    assert (90,269,16) == main2(18)
+#@pytest.mark.skip
+def test_AA1():
+    assert (232,251,12) == main2(42)
 
 #@pytest.mark.skip
 def test_B():
-    with open("data","rt") as fp:
-        print(main(fp))
+    print(main(4455))
+
+#@pytest.mark.skip
+def test_BB():
+    print(main2(4455))
