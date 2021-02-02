@@ -34,7 +34,7 @@ def main(sn):
     return best_p
 
 def build_ctbl(sn,n):
-    ctbl = defaultdict(int)
+    ctbl = {}
     for x in range(n+1,0,-1):
         for y in range(n+1,0,-1):
             sum = 0
@@ -69,7 +69,7 @@ def main2(sn):
 
     ctbl = build_ctbl(sn,n)
 
-    for k in range(1,n):
+    for k in range(1,n+1):
         if k % 20 == 0:
             print(f'k: {k}')
         for x in range(1,n+1-k+1):
