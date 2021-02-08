@@ -156,7 +156,7 @@ def main(fp):
     def filter_horiz(gen):
         for (x,y) in gen:
             if board[(x,y)] == '|' and board[(x,y+1)] in "#~":
-                    yield (x,y)
+                yield (x,y)
     def filter_down(gen):
         for (x,y) in gen:
             if board[(x,y)] == '|' and board[(x,y+1)] in ".":
@@ -174,7 +174,6 @@ def main(fp):
     horiz_candidates = down( (500,0))
     down_candidates = set()
     
-    iter = 0
     while True:
         print( 'Candidate sizes', len(horiz_candidates), len(down_candidates))
         lst0 = list(filter_horiz(horiz_candidates))
@@ -183,34 +182,19 @@ def main(fp):
             hc, dc = horiz(p)
             horiz_candidates = horiz_candidates.union(hc)
             down_candidates = down_candidates.union(dc)
-            #print()
-            #print_board()
         lst1 = list(filter_down(down_candidates))
         down_candidates = set()
         for p in lst1:
             hc = down(p)
             horiz_candidates = horiz_candidates.union(hc)
-            #print()
-            #print_board()
         if not lst0 and not lst1:
             break
-        iter += 1
-        if False and iter > 34:
-            break
 
-    def count_water():
+    def count_water(s='|~='):
         count = 0
         for y in range(save_mY,MY+1):
             for x in range(mX-1,MX+2):
-                if board[(x,y)] in '|~+':
-                    count += 1
-        return count
-
-    def count_still_water():
-        count = 0
-        for y in range(save_mY,MY+1):
-            for x in range(mX-1,MX+2):
-                if board[(x,y)] in '~':
+                if board[(x,y)] in s:
                     count += 1
         return count
 
@@ -222,7 +206,7 @@ def main(fp):
             assert board[(x,y)] == c, (x,y)
 
 
-    return count_water(), count_still_water()
+    return count_water(), count_water('~')
 
 
 #@pytest.mark.skip
