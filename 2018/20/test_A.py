@@ -16,6 +16,19 @@ sys.setrecursionlimit(100000)
 """
 
 
+def toStr( r):
+    if type(r) == tuple:
+        if r[0] == '|':
+            return '(' + '|'.join( toStr(s) for s in r[1]) + ')'
+        elif r[0] == '*':
+            return ''.join( toStr(s) for s in r[1])
+        else:
+            assert False, r
+    else:
+        return r
+
+
+
 def parse(fp):
     
     seq = []
@@ -78,7 +91,6 @@ P -> '(' E ')'
         while 0 <= cursor < len(line):
             result.append( term())
             c = line[cursor]            
-            logging.info( f'expr {cursor} {c}')
             if c == '|':
                 cursor += 1
             else:
@@ -87,17 +99,6 @@ P -> '(' E ')'
             return result[0]
         else:
             return ('|',result)
-
-    def toStr( r):
-        if type(r) == tuple:
-            if r[0] == '|':
-                return '(' + '|'.join( toStr(s) for s in r[1]) + ')'
-            elif r[0] == '*':
-                return '(' + ''.join( toStr(s) for s in r[1]) + ')'
-            else:
-                assert False, r
-        else:
-            return r
 
     def root():
         nonlocal cursor
@@ -113,6 +114,9 @@ P -> '(' E ')'
 
 
     r = root()
+
+    assert '^' + toStr(r) + '$' == line
+
     return r
 
 def find_edges( r):
@@ -122,16 +126,28 @@ def find_edges( r):
     d = { 'N': (-1,0), 'S': (1,0), 'W': (0,-1), 'E': (0,1)}
 
     def visit( p, r):
+        logging.info( f'Calling visit: {p} {toStr(r)}')
         nonlocal reachable_edges
         if type(r) == tuple:
             cmd, lst = r
             if   cmd == '|':
+
                 for idx,s in enumerate(lst):
-                    yield from visit( p, s)
+                    l = list( visit(p,s))
+                    ss = set( l)
+                    assert len(ss) == len(l)
+                    #assert len(ss) == 1
+                    #logging.info( f'| len {len(ss)} {ss}')
+                    yield from ss
             elif cmd == '*':
                 if lst:
                     for pp in visit( p, lst[0]):
-                        yield from visit( pp, (cmd, lst[1:]))
+                        l = list(visit( pp, (cmd, lst[1:])))
+                        ss = set(l)
+                        #assert len(ss) == len(l)
+                        #assert len(ss) == 1
+                        #logging.info( f'* len {len(ss)} {ss}')
+                        yield from ss
                 else:
                     yield p
         else:
@@ -146,7 +162,8 @@ def find_edges( r):
             yield pp
 
     # Run the generator
-    _ =  list(visit( (0,0), r))
+    for p in visit( (0,0), r):
+        print( p)
     
     nodes = { n for s in reachable_edges for n in s}
 
@@ -189,15 +206,16 @@ def shortest_paths( nodes, reachable_edges):
     reached = set()
     
     steps = 0
-    while frontier:
+    while True:
         new_frontier = set()
         for u in frontier:
             for v in adjacent_nodes[u]:
                 new_frontier.add(v)
         reached = reached.union(frontier)
         frontier = new_frontier.difference(reached)
-        if frontier:
-            steps += 1
+        if not frontier:
+            break
+        steps += 1
             
     return steps
 
@@ -244,7 +262,7 @@ def test_big2():
     with open("big2","rt") as fp:
         assert 31 == main(fp)
 
-@pytest.mark.skip
+#@pytest.mark.skip
 def test_B():
     with open("data","rt") as fp:
         print(main(fp))
