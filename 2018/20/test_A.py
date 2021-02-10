@@ -11,11 +11,6 @@ import sys
 print(sys.getrecursionlimit())    
 sys.setrecursionlimit(100000)
 
-"""
-3434 NE Alameda
-"""
-
-
 def toStr( r):
     if type(r) == tuple:
         if r[0] == '|':
@@ -26,8 +21,6 @@ def toStr( r):
             assert False, r
     else:
         return r
-
-
 
 def parse(fp):
     
@@ -131,14 +124,14 @@ def find_edges( r):
         if type(r) == tuple:
             cmd, lst = r
             if   cmd == '|':
-
                 for idx,s in enumerate(lst):
                     l = list( visit(p,s))
                     ss = set( l)
                     assert len(ss) == len(l)
                     #assert len(ss) == 1
                     #logging.info( f'| len {len(ss)} {ss}')
-                    yield from ss
+                    #yield from ss
+                yield p
             elif cmd == '*':
                 if lst:
                     for pp in visit( p, lst[0]):
@@ -194,7 +187,7 @@ def print_board( nodes, reachable_edges):
             line += '|' if edge in reachable_edges else ' '
         print(line)
 
-def shortest_paths( nodes, reachable_edges):
+def shortest_paths( nodes, reachable_edges, max_steps=None):
     
     adjacent_nodes = defaultdict(list)
     for edge in reachable_edges:
@@ -205,6 +198,7 @@ def shortest_paths( nodes, reachable_edges):
     frontier = { (0,0)}
     reached = set()
     
+    save_reached_size = None
     steps = 0
     while True:
         new_frontier = set()
@@ -216,16 +210,26 @@ def shortest_paths( nodes, reachable_edges):
         if not frontier:
             break
         steps += 1
+        if max_steps is not None and steps+1 == max_steps:
+            save_reached_size = len(reached)
             
-    return steps
+    return steps, len(reached), save_reached_size
 
 
 def main(fp):
     root = parse(fp)
     nodes, reachable_edges = find_edges( root)
     print_board( nodes, reachable_edges)
-    length_of_longest_shortest_path = shortest_paths( nodes, reachable_edges)
+    length_of_longest_shortest_path, _, _ = shortest_paths( nodes, reachable_edges)
     return length_of_longest_shortest_path
+
+def main2(fp,max_steps=1000):
+    root = parse(fp)
+    nodes, reachable_edges = find_edges( root)
+    print_board( nodes, reachable_edges)
+    length_of_longest_shortest_path, s1, s0 = shortest_paths( nodes, reachable_edges, max_steps=max_steps)
+    print(s1,s0)
+    return s1-s0-1
 
 #@pytest.mark.skip
 def test_ex1():
@@ -262,9 +266,19 @@ def test_big2():
     with open("big2","rt") as fp:
         assert 31 == main(fp)
 
-#@pytest.mark.skip
+@pytest.mark.skip
 def test_B():
     with open("data","rt") as fp:
         print(main(fp))
+
+#@pytest.mark.skip
+def test_AA0():
+    with open("data0","rt") as fp:
+        print(main2(fp,max_steps=4))
+
+#@pytest.mark.skip
+def test_BB():
+    with open("data","rt") as fp:
+        print(main2(fp))
 
 
