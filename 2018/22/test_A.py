@@ -52,6 +52,13 @@ def main(*,depth,target):
                ty == 1 and tier in [neither,climbing_gear] or \
                ty == 2 and tier in [torch,neither]
         
+    next_tier_tbl = { ( neither, -1) : climbing_gear,
+                      ( neither,  1) : torch,
+                      ( torch,   -1) : neither,
+                      ( torch,    1) : climbing_gear,
+                      ( climbing_gear, -1) : torch,
+                      ( climbing_gear,  1) : neither}
+
     def gen_adjacent( t):
         (x,y), tier = t
         dirs = [(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)]
@@ -64,8 +71,10 @@ def main(*,depth,target):
             if safe( ntier, ty( (xx,yy))) and safe( tier, ty( (x,y))):
                 yield (xx,yy),ntier
             elif dx == 0 and dy == 0:
-                yield (xx,yy),ntier
-
+                # Ensure we are moving toward a legal solution
+                cand = (tier, dtier)
+                if cand not in next_tier_tbl or safe( next_tier_tbl[cand], ty( (x,y))):
+                    yield (xx,yy),ntier
 
     reached = set()
     frontier = { ((0,0),torch)}
