@@ -19,8 +19,6 @@ def parse(fp):
     return seq[0]
 
 def run(seq,inps):
-    print(seq,inps)
-
     pc = 0
 
     insts = { 1: lambda x,y: x+y,
@@ -42,16 +40,15 @@ def run(seq,inps):
         if seq[pc] == 99:
             break
 
-
         cmd = seq[pc]
         op = cmd % 100
         cmd = cmd // 100
         modebits = [op]
-        for _ in range(4):
+        for _ in range(2):
             modebits.append(cmd % 10)
             cmd = cmd // 10
 
-        print(pc, modebits, seq[pc:pc+8])
+        logging.info( f'{pc} {modebits} {seq[pc:pc+8]}')
 
         if op == 3:
             assert modebits[1] == 0
@@ -74,7 +71,7 @@ def run(seq,inps):
             a = get_operand( modebits[1], seq[pc+1])
             b = get_operand( modebits[2], seq[pc+2])
             c = seq[pc+3]
-            seq[seq[pc+3]] = insts[op]( a, b)
+            seq[c] = insts[op]( a, b)
             pc += 4            
         else:
             assert False, modebits
