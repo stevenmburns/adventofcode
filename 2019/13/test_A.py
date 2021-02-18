@@ -97,26 +97,26 @@ import time
 def print_board( board):
     print('\033c',end='')
 
-    mrow, Mrow = -10, 10
-    mcol, Mcol = -10, 10
+    mx, Mx = -10, 10
+    my, My = -10, 10
 
     led = None
-    for (irow,icol) in board.keys():
-        if (irow,icol) == (-1,0):
-            led = board[(irow,icol)]
+    for (x,y) in board.keys():
+        if (x,y) == (-1,0):
+            led = board[(x,y)]
             continue
-        if mrow is None or mrow > irow: mrow = irow 
-        if Mrow is None or Mrow < irow: Mrow = irow 
-        if mcol is None or mcol > icol: mcol = icol 
-        if Mcol is None or Mcol < icol: Mcol = icol 
+        if my is None or my > y: my = y 
+        if My is None or My < y: My = y 
+        if mx is None or mx > x: mx = x 
+        if Mx is None or Mx < x: Mx = x 
 
 
 
     print(f'led {led}')
-    for irow in range( mrow,Mrow+1):
+    for y in range( my,My+1):
         line = ''
-        for icol in range( mcol,Mcol+1):
-            q = (irow,icol) 
+        for x in range( mx,Mx+1):
+            q = (x,y) 
             if q in board:
                 if board[q] in [1,2,3,4]:
                     line += str(board[q])
