@@ -97,8 +97,8 @@ import time
 def print_board( board):
     print('\033c',end='')
 
-    mx, Mx = -10, 10
-    my, My = -10, 10
+    mx, Mx = 0, 10
+    my, My = 0, 10
 
     led = None
     for (x,y) in board.keys():
@@ -109,8 +109,6 @@ def print_board( board):
         if My is None or My < y: My = y 
         if mx is None or mx > x: mx = x 
         if Mx is None or Mx < x: Mx = x 
-
-
 
     print(f'led {led}')
     for y in range( my,My+1):
@@ -149,12 +147,16 @@ def main(fp,part2=False):
 
     return sum( 1 for k,v in board.items() if v == 2)
 
+import curses
+
 def main2(fp,part2=False):
     insts = parse(fp)
 
     insts[0] = 2 # add quarters
 
     computer = gen_run(insts)
+
+    screen = curses.initscr()
 
     board = {}
 
@@ -179,6 +181,14 @@ def main2(fp,part2=False):
 
         board[ (x,y)] = tile_id
 
+        if x >= 0 and y >= 0:
+            if tile_id != 0:
+                screen.addch( y, x, str(tile_id))
+            else:
+                screen.addch( y, x, ' ')
+            screen.refresh()
+            curses.napms(0)
+
         if tile_id == 4:
             ball = (x,y)
 
@@ -194,12 +204,15 @@ def main2(fp,part2=False):
             else:
                 joystick = 0
 
-        if steps % 100 == 0:
-            time.sleep(0.1)
-            print_board(board)
+        if steps % 1 == 0:
+            pass
+            #time.sleep(0.01)
+            #print_board(board)
         steps += 1
 
-    print_board(board)
+    #print_board(board)
+    curses.napms(3000)
+    curses.endwin()
 
 @pytest.mark.skip
 def test_B():
