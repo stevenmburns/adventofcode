@@ -32,6 +32,10 @@ def gen_run(seq):
               8: lambda x,y: 1 if x == y else 0
     }
 
+    jumps = { 5: lambda x: x != 0,
+              6: lambda x: x == 0
+    }
+
     def get_operand( mode, val):
         if mode == 0:
             return seq_tbl[val]
@@ -75,16 +79,10 @@ def gen_run(seq):
         elif op == 9:
             offset += get_operand( modebits[1], seq_tbl[pc+1])
             pc += 2
-        elif op == 5:
-            if get_operand( modebits[1], seq_tbl[pc+1]) != 0:
-                pc = get_operand( modebits[2], seq_tbl[pc+2])
-            else:
-                pc += 3
-        elif op == 6:
-            if get_operand( modebits[1], seq_tbl[pc+1]) == 0:
-                pc = get_operand( modebits[2], seq_tbl[pc+2])
-            else:
-                pc += 3
+        elif op in jumps:
+            a = get_operand( modebits[1], seq_tbl[pc+1])
+            b = get_operand( modebits[2], seq_tbl[pc+2])
+            pc = b if jumps[op]( a) else pc+3
         elif op in insts:
             a = get_operand( modebits[1], seq_tbl[pc+1])
             b = get_operand( modebits[2], seq_tbl[pc+2])
@@ -96,45 +94,211 @@ def gen_run(seq):
 import curses
 import random
 
-def main(fp,part2=False):
+def main(fp):
     insts = parse(fp)
 
     computer = gen_run(insts)
 
-    s = ''.join( chr(x) for x in computer)
-
-
-
-    board = s.split('\n')[:-2]
-
-    print(board)
+    board = ''.join( chr(x) for x in computer).split('\n')[:-2]
 
     nrows = len(board)
     ncols = len(board[0])
+    for irow in range(0,nrows):
+        assert len(board[irow]) == ncols
 
     joints = set()
+    dirs = [ (0,0), (-1,0), (1,0), (0,-1), (0,1)]
     for irow in range(1,nrows-1):
-        assert len(board[irow]) == ncols
         for icol in range(1,ncols-1):
-            if board[irow][icol] == '#' and \
-               board[irow-1][icol] == '#' and \
-               board[irow+1][icol] == '#' and \
-               board[irow][icol-1] == '#' and \
-               board[irow][icol+1] == '#':
+            if all( board[irow+drow][icol+dcol] == '#' for drow,dcol in dirs):
                 joints.add( (irow,icol))
 
     return sum( irow*icol for irow,icol in joints)
 
 
-#@pytest.mark.skip
-def test_B():
-    with open("data","rt") as fp:
-        print(main(fp))
+def main2(fp):
+    insts = parse(fp)
+    insts[0] = 2 # run in game mode
+
+    computer = gen_run(insts)
+
+    dirs = { '<': (0,-1), '>': (0,1), '^': (-1,0), 'v': (1,0)}
+
+    def recv_board():
+        s = ''
+        last_c = None
+        while True:
+            try:
+                rc = next(computer)
+                if rc is None:
+                    break
+                c = chr(rc)
+                s += c
+                if last_c is not None and last_c == '\n' and c == '\n':
+                    return s
+                last_c = c
+            except StopIteration:
+                break
+
+        assert False, "Expected consecutive new lines to end board"
+
+    def recv():
+        s = ''
+        while True:
+            try:
+                rc = next(computer)
+                if rc is None:
+                    break
+                s += chr(rc)
+            except StopIteration:
+                break
+        return s
+
+    def recv_score():
+        try:
+            rc = next(computer)
+            return rc
+        except StopIteration:
+            return None
+        return s
+
+    def legal_dirs( board, p):
+        nrows = len(board)
+        ncols = len(board[0])
+        irow, icol = p
+        assert board[irow][icol] != '.'
+
+
+        result = set()
+        for dir, (drow,dcol) in dirs.items():
+            jrow,jcol = irow+drow,icol+dcol
+            if  0 <= jrow < nrows and 0 <= jcol < ncols:
+                if board[jrow][jcol] != '.':
+                    result.add( (dir,(jrow,jcol)))
+        
+        return result
+
+                    
+    def analyze_board(s):
+        board = s.split('\n')[:-2]
+        order = '<^>v'
+
+        nrows = len(board)
+        ncols = len(board[0])
+
+        def turn( before, now):
+            bi = order.index(before)
+            ni = order.index(now)
+
+            delta = (ni-bi)%4
+
+            assert delta in [1,3]
+            if delta == 1:
+                return 'R'
+            elif delta == 3:
+                return 'L'
+
+
+        cursors = set()
+        for irow,line in enumerate(board):
+            for icol,c in enumerate(line):
+                if c in order:
+                    cursors.add( (irow,icol))
+
+        assert len(cursors) == 1
+        cursor = list(cursors)[0]
+        
+        d = board[cursor[0]][cursor[1]]
+
+        print(cursor, d)
+
+        def opposite( c):
+
+            idx = order.index(c)
+            return order[(idx+2)%4]
+
+        moves = []
+
+        last_d = d
+        while True:
+            s = legal_dirs( board, cursor)
+
+            s = { x for x in s if x[0] != opposite(last_d)}
+
+            if len(s) == 0:
+                break
+
+            assert len(s) == 1
+            d, next_cursor = list(s)[0]
+            drow,dcol = dirs[d]
+            steps = 0
+            while True:
+                irow,icol = cursor
+                jrow,jcol = irow+drow, icol+dcol
+                if 0 <= jrow < nrows and 0 <= jcol < ncols and \
+                   board[jrow][jcol] == '#':
+                    cursor = jrow,jcol
+                    steps += 1
+                else:
+                    break
+
+            moves.append( (turn(last_d,d),steps))
+
+            last_d = d
+
+        print( moves)
+        return moves
+
+    def send( s):
+        result = []
+        for c in s:
+            rc = computer.send(ord(c))
+            assert rc is None
+        rc = computer.send(ord('\n'))
+        return chr(rc)
+
+    board = recv_board()
+
+    print()
+    print(board)
+
+    flat_commands = analyze_board(board)
+
+    sA = ','.join( f'{c},{n}' for c,n in flat_commands[0:4])
+    sB = ','.join( f'{c},{n}' for c,n in flat_commands[4:8])
+    sC = ','.join( f'{c},{n}' for c,n in flat_commands[8:12])
+
+    print(recv())
+    print( send( 'A,B,C'), end='')
+    print(recv())
+    print( send( sA), end='')
+    print(recv())
+    print( send( sB), end='')
+    print(recv())
+    print( send( sC), end='')
+    print(recv())
+    print( send( 'n'), end='')
+    print(recv_board())
+
+    score = next(computer)
+    print(score)
+
+    try:
+        rc = next(computer)
+        print( 'expected a Stopiteration')
+    except StopIteration:
+        pass
+
 
 @pytest.mark.skip
+def test_B():
+    with open("data","rt") as fp:
+        assert 10632 == main(fp)
+
+#@pytest.mark.skip
 def test_BB():
     with open("data","rt") as fp:
-        print(main(fp,part2=True))
+        print(main2(fp))
 
 
 

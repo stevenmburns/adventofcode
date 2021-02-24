@@ -4,244 +4,168 @@ import re
 import itertools
 from collections import defaultdict, deque
 import logging
+import time
 
 #logging.basicConfig(level=logging.INFO)
 
-def parse(fp):
-    seq = []
+def clean( x):
+    return abs(x)%10
 
-    for line in fp:
-        line = line.rstrip('\n')
-        seq.append( [ int(x) for x in line.split(',')])
+def pattern( n, r):
+    base_pattern = [0,1,0,-1]
 
-    assert len(seq) == 1
+    result = []
+    j = 0
+    for i in range(1,n+2):
+        result.append(base_pattern[j])
+        if i % r == (r-1):
+            j = (j+1) % len(base_pattern)
+    if r == 1:
+        return result[1:]
+    else:
+        return result[:-1]
 
-    return seq[0]
+def pattern_rle( n, r):
+    if r == 1:
+        return run_length_encode( pattern( n, r), 0)
 
-def gen_run(seq):
-    pc = 0
-    offset = 0
+    base_pattern = [0,1,0,-1]
 
-    seq_tbl = defaultdict(int)
-    for idx,inst in enumerate(seq):
-        seq_tbl[idx] = inst
+    result = []
 
-    insts = { 1: lambda x,y: x+y,
-              2: lambda x,y: x*y,
-              7: lambda x,y: 1 if x < y else 0,
-              8: lambda x,y: 1 if x == y else 0
-    }
+    i = 0
+    j = 0
+    start = 0
+    c = base_pattern[0]
+    i = r-1
+    while i < n:
+        if base_pattern[j] != 0:
+            result.append( (start,i,base_pattern[j]))
+        j = (j+1) % len(base_pattern)        
+        start = i
+        i += r
 
-    def get_operand( mode, val):
-        if mode == 0:
-            return seq_tbl[val]
-        elif mode == 1:
-            return val
-        elif mode == 2:
-            return seq_tbl[val+offset]
+    if start < n:
+        if base_pattern[j] != 0:
+            result.append( (start,n,base_pattern[j]))
+
+    return result
+
+
+
+def inner( pat, lst):
+    #print( ''.join( '-' if x < 0 else ('+' if x > 0 else '0') for x in pat))
+    #print( ''.join( str(x) for x in lst))
+    return sum( x*y for x,y in zip(pat,lst))
+
+def run_length_encode( pat, zero):
+    start = None
+    current = None
+    tuples = []
+    for idx, c in enumerate(pat):
+        if start is None:
+            start = idx
+            current = c
+        elif current == c:
+            pass
         else:
-            assert False, mode
+            if current != zero:
+                tuples.append( (start,idx,current))
+            start = idx
+            current = c
 
-    def set_value_to_operand( mode, val, value):
-        if mode == 0:
-            seq_tbl[val] = value
-        elif mode == 1:
-            assert False
-        elif mode == 2:
-            seq_tbl[val+offset] = value
-        else:
-            assert False, mode
+    if current != zero:
+        tuples.append( (start,len(pat),current))
 
-    while True:
-        cmd = seq_tbl[pc]
-        op = cmd % 100
+    return tuples
+
+def test_run_length_encode0():
+    pat = '0011000111'
+    assert [ (2,4,'1'), (7, 10, '1')] == run_length_encode( pat, '0')
+
+def test_run_length_encode1():
+    pat = '--++---+++'
+    assert [ (0,2,'-'), (2,4,'+'), (4,7,'-'), (7,10,'+')] == run_length_encode( pat, '0')
 
 
-        cmd = cmd // 100
-        modebits = [op]
-        for _ in range(3):
-            modebits.append(cmd % 10)
-            cmd = cmd // 10
+def compressed_inner( pat_rle, cummulative_lst):
+    s = 0
+    for (start,end,coeff) in pat_rle:
+        s += coeff* (cummulative_lst[end]-cummulative_lst[start])
+    return s
 
-        if seq_tbl[pc] == 99:
-            break
+def cummulative_sum( lst):
+    s = 0
+    result = [s]
+    for x in lst:
+        s += x
+        result.append(s)
+    return result
 
-        if op == 3:
-            set_value_to_operand( modebits[1], seq_tbl[pc+1], (yield))
-            pc += 2
-        elif op == 4:
-            yield get_operand( modebits[1], seq_tbl[pc+1])
-            pc += 2
-        elif op == 9:
-            offset += get_operand( modebits[1], seq_tbl[pc+1])
-            pc += 2
-        elif op == 5:
-            if get_operand( modebits[1], seq_tbl[pc+1]) != 0:
-                pc = get_operand( modebits[2], seq_tbl[pc+2])
+
+def inner2( pat, lst):
+    return compressed_inner( run_length_encode( pat, 0), cummulative_sum( lst))
+
+def main(s,iters,repeat=1,offset=0):
+
+    lst = [ int(c) for c in s]
+
+    lst = lst*repeat
+
+    start = time.monotonic()
+    last = start
+    for iter in range(iters):
+        cummulative_lst = cummulative_sum( lst)
+        new_lst = []
+        for idx in range(len(lst)):
+            if idx % 1000 == 0:
+                print(idx)
+            if False:
+                pat = pattern( len(lst), idx+1)
+                value = inner( pat, lst)
             else:
-                pc += 3
-        elif op == 6:
-            if get_operand( modebits[1], seq_tbl[pc+1]) == 0:
-                pc = get_operand( modebits[2], seq_tbl[pc+2])
-            else:
-                pc += 3
-        elif op in insts:
-            a = get_operand( modebits[1], seq_tbl[pc+1])
-            b = get_operand( modebits[2], seq_tbl[pc+2])
-            set_value_to_operand( modebits[3], seq_tbl[pc+3], insts[op]( a, b))
-            pc += 4            
-        else:
-            assert False, modebits
+                #pat = pattern( len(lst), idx+1)                
+                #pat_rle = run_length_encode( pat, 0)
+                pat_rle = pattern_rle( len(lst), idx+1)
+                value = compressed_inner( pat_rle, cummulative_lst)
+            new_lst.append( clean( value))
+        lst = new_lst
+        end = time.monotonic()
+        print( f'Iteration {iter} {end-start} {end-last}')
+        last = end
 
-import curses
-import random
-
-def main(fp,part2=False):
-    insts = parse(fp)
-
-    computer = gen_run(insts)
-
-    screen = curses.initscr()
-    #screen = None
-
-    board = {}
-
-    p = (0,0)
-    movement_command = 1 # north
-    # (x,y) x going right, y going down
-    dirs = { 1: (0,-1), 2: (0,1), 3: (-1,0), 4: (1,0)}
-
-    order = [1, 3, 2, 4]
-
-    def test_move( movement_command):
-        rc = next(computer)
-        assert rc is None
-        return computer.send(movement_command)
-
-    def draw( p, v):
-        if screen is not None:
-            row, col = p[1] + 30, p[0] + 30
-            if 0 <= row < 60 and 0 <= col < 100:
-                screen.addch( row, col, v)
-
-    def set_board( p, v):
-        board[p] = v
-        draw( p, v)
-
-    def opposite( k):
-        return order[ (order.index(k)+2)%4]
-
-    sp = { p : []}
-    reached = set()
-    frontier = { p }
-
-    levels = 0
-
-    oxygen_at_level = None
-    oxygen_p = None
-
-    while frontier:
-
-        new_frontier = set()
-        for p in frontier:
-
-            # travel from origin to p
-            #print( f'path to {p}: {sp[p]}')
-            q = (0,0)
-            for k in sp[p]:
-                status = test_move( k)                
-                assert status in [1,2], (k, status)
-                d = dirs[k]
-                q = q[0]+d[0], q[1]+d[1]
-            assert p == q
-
-            # find walls around p
-            for k,d in dirs.items():
-                q = p[0]+d[0], p[1]+d[1]
-                if q not in board: # unknown
-                    status = test_move( k)
-                    if status == 1:
-                        set_board( q, '.')
-                        test_move( opposite(k))
-                    elif status == 2:
-                        set_board( q, 'O')
-                        if oxygen_at_level is None:
-                            oxygen_at_level = levels+1
-                            oxygen_p = q
-                        test_move( opposite(k))
-                    elif status == 0:
-                        set_board( q, '#')
-                    else:
-                        assert False, status
-
-            for k,d in dirs.items():
-                q = p[0]+d[0], p[1]+d[1]
-                assert q in board
-                if board[q] != '#':
-                    new_frontier.add( q)
-                    if q not in frontier and q not in reached and q not in sp:
-                        sp[q] = sp[p] + [k]
-
-            # travel back to origin
-            q = p
-            for k in reversed(sp[p]):
-                status = test_move( opposite(k))                
-                assert status in [1,2], (k, opposite(k), status)
-                d = dirs[opposite(k)]
-                q = q[0]+d[0], q[1]+d[1]
-            assert q == (0,0)
         
-        levels += 1
-        reached = reached.union(frontier)
+    return ''.join( str(x) for x in lst[offset:offset+8])
 
-        frontier = new_frontier.difference(reached)
 
-        if screen is not None:
-            screen.refresh()
-            curses.napms(0)
+@pytest.mark.skip
+def test_A0():
+    assert '01029498' == main( '12345678', 4)
 
-    if screen is not None:
-        curses.napms(10000)
-        curses.endwin()
+@pytest.mark.skip
+def test_A1():
+    assert '24176176' == main( '80871224585914546619083218645595', 100)
 
-    if not part2:
-        return oxygen_at_level
+@pytest.mark.skip
+def test_A2():
+    assert '73745418' == main( '19617804207202209144916044189917', 100)
 
-    reached = set()
-    frontier = { oxygen_p }
-
-    levels = 0
-
-    while frontier:
-
-        new_frontier = set()
-        for p in frontier:
-            for k,d in dirs.items():
-                q = p[0]+d[0], p[1]+d[1]
-                assert q in board
-                if board[q] != '#':
-                    new_frontier.add( q)
-
-        reached = reached.union(frontier)
-        frontier = new_frontier.difference(reached)
-        if not frontier:
-            break
-
-        levels += 1
-
-    print(levels)
-
-    return levels
+@pytest.mark.skip
+def test_A3():
+    assert '52432133' == main( '69317163492948606335995924319873', 100)
 
 @pytest.mark.skip
 def test_B():
-    with open("data","rt") as fp:
-        print(main(fp))
+    print(main('59740570066545297251154825435366340213217767560317431249230856126186684853914890740372813900333546650470120212696679073532070321905251098818938842748495771795700430939051767095353191994848143745556802800558539768000823464027739836197374419471170658410058272015907933865039230664448382679990256536462904281204159189130560932257840180904440715926277456416159792346144565015659158009309198333360851441615766440174908079262585930515201551023564548297813812053697661866316093326224437533276374827798775284521047531812721015476676752881281681617831848489744836944748112121951295833143568224473778646284752636203058705797036682752546769318376384677548240590',100))
 
 #@pytest.mark.skip
 def test_BB():
-    with open("data","rt") as fp:
-        print(main(fp,part2=True))
+    s = '59740570066545297251154825435366340213217767560317431249230856126186684853914890740372813900333546650470120212696679073532070321905251098818938842748495771795700430939051767095353191994848143745556802800558539768000823464027739836197374419471170658410058272015907933865039230664448382679990256536462904281204159189130560932257840180904440715926277456416159792346144565015659158009309198333360851441615766440174908079262585930515201551023564548297813812053697661866316093326224437533276374827798775284521047531812721015476676752881281681617831848489744836944748112121951295833143568224473778646284752636203058705797036682752546769318376384677548240590'
+
+    offset = int(s[:7])
+
+    print(main(s,100,10000,offset))
+
 
 
 
