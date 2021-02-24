@@ -246,7 +246,6 @@ def main2(fp):
 
             last_d = d
 
-        print( moves)
         return moves
 
     def send( s):
@@ -264,12 +263,52 @@ def main2(fp):
 
     flat_commands = analyze_board(board)
 
-    sA = ','.join( f'{c},{n}' for c,n in flat_commands[0:4])
-    sB = ','.join( f'{c},{n}' for c,n in flat_commands[4:8])
-    sC = ','.join( f'{c},{n}' for c,n in flat_commands[8:12])
+    print(flat_commands)
+
+    for k in range(1,5):
+        for i in range(len(flat_commands)-k+1):
+            lst = flat_commands[i:i+k]
+            print( lst, i, i+k)
+            for j in range(len(flat_commands)-k+1):        
+                if lst == flat_commands[j:j+k]:
+                    print('\tmatch', j)
+
+    for i in range(len(flat_commands)-4+1):
+        lst = flat_commands[i:i+4]
+        print( lst, i, i+4)
+        for j in range(len(flat_commands)-4+1):        
+            if lst == flat_commands[j:j+4]:
+                print('\tmatch', j)
+
+    """
+[('L', 12), ('L', 8), ('R', 12)] 0 3
+	match 0
+	match 7
+	match 13
+	match 16
+
+
+[('L', 10), ('L', 8), ('L', 12), ('R', 12)] 3 7
+	match 3
+	match 22
+	match 29
+
+[('R', 12), ('L', 8), ('L', 10)] 10 13
+	match 10
+	match 19
+	match 26
+
+
+"""
+
+
+    sA = ','.join( f'{c},{n}' for c,n in flat_commands[0:3])
+    sB = ','.join( f'{c},{n}' for c,n in flat_commands[3:7])
+    sC = ','.join( f'{c},{n}' for c,n in flat_commands[10:13])
+
 
     print(recv())
-    print( send( 'A,B,C'), end='')
+    print( send( 'A,B,A,C,A,A,C,B,C,B'), end='')
     print(recv())
     print( send( sA), end='')
     print(recv())
