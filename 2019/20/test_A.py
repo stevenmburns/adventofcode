@@ -218,40 +218,150 @@ def main(fp):
     reached = { start: 0} # state => steps
 
     frontier = []
-    heapq.heappush(frontier, (0, start))
+    heapq.heappush(frontier, (0, start != final, start, 0))
 
     while frontier:
 
-        level, state = heapq.heappop( frontier)
+        fhat, not_done, state, ghat = heapq.heappop( frontier)
 
-        print( f'headpop: {level} {state} {inv_tag_tbl[state]}') 
+        print( f'headpop: {fhat} {not_done} {state} ({inv_tag_tbl[state]}) {ghat}') 
+
+        if not not_done:
+            assert fhat == ghat
+            assert ghat == reached[final]
+            return ghat
+
+        # this has already been or will be processed because the smaller tuple is also on the PQ
+        if ghat > reached[state]: continue
 
         (irow,icol) = state
 
         for new_state,cost in adjacents[state].items():
-            new_level = level + cost
-
             if new_state == state: continue
+
+            new_ghat = ghat + cost
+            new_fhat = new_ghat
  
-            if new_state not in reached or reached[new_state] > new_level:
-                print(f'setting {new_state} {inv_tag_tbl[new_state]} to {new_level}')
-                reached[new_state] = new_level
-                heapq.heappush( frontier, (new_level,new_state))
+            if new_state not in reached or reached[new_state] > new_ghat:
+                reached[new_state] = new_ghat
+                heapq.heappush( frontier, (new_fhat, new_state != final, new_state, new_ghat))
 
-    return reached[final]
+    return None
+
+def main2(fp):
+    board, tag_tbl = parse(fp)
+
+    inv_tag_tbl = {}
+    for k, vv in tag_tbl.items():
+        assert vv not in inv_tag_tbl
+        inv_tag_tbl[vv] = k
+
+    adjacents = {}
+
+    for (tag, ty), p in tag_tbl.items():
+        adjacents[p] = determine_path_lengths( board, inv_tag_tbl, p)
+
+    for (tag, ty), p in tag_tbl.items():
+        print( tag, ty, p)
+        for pp, l in adjacents[p].items():
+            print('\t', pp, l, inv_tag_tbl[pp])
+
+    nrows = len(board)
+    ncols = len(board[0])
+
+    start = { tag_tbl[('AA', ty)] for ty in 'io' if ('AA', ty) in tag_tbl}
+    final = { tag_tbl[('ZZ', ty)] for ty in 'io' if ('ZZ', ty) in tag_tbl}
+
+    assert len(start) == 1
+    assert len(final) == 1
+
+    start = (0, list(start)[0])
+    final = (0, list(final)[0])
+
+    print(start,final)
+
+    reached = { start: 0} # state => steps
+
+    frontier = []
+    heapq.heappush(frontier, (0, start != final, start, 0))
+
+    while frontier:
+
+        fhat, not_done, state, ghat = heapq.heappop( frontier)
+
+        level, p = state
+
+        print( f'headpop: {fhat} {not_done} {state} {inv_tag_tbl[p]} {ghat}') 
+
+        if not not_done:
+            assert fhat == ghat
+            assert ghat == reached[final]
+            return ghat
+
+        # this has already been or will be processed because the smaller tuple is also on the PQ
+        if ghat > reached[state]: continue
+
+        def gen_adjacents( p):
+            for new_p,cost in adjacents[p].items():
+                if new_p == p: continue
+                yield (level, new_p), cost
+
+            tag, ty = inv_tag_tbl[p]
+            if tag in ['AA', 'ZZ']: return
+            if ty == 'o':
+                # go down a level to the 'i' cases
+                if level > 0:
+                    new_p = tag_tbl[ (tag,'i')]
+                    yield (level-1, new_p), 1
+            elif ty == 'i':
+                # go up a level to the 'o' cases
+                new_p = tag_tbl[ (tag,'o')]
+                yield (level+1, new_p), 1
+
+        for new_state,cost in gen_adjacents(p):
+
+            new_ghat = ghat + cost
+            new_fhat = new_ghat
+ 
+            if new_state not in reached or reached[new_state] > new_ghat:
+                reached[new_state] = new_ghat
+                heapq.heappush( frontier, (new_fhat, new_state != final, new_state, new_ghat))
+
+    return None
 
 
-#@pytest.mark.skip
+@pytest.mark.skip
 def test_A0():
     with open("data0","rt") as fp:
         assert 23 == main(fp)
 
-#@pytest.mark.skip
+@pytest.mark.skip
 def test_A1():
     with open("data1","rt") as fp:
         assert 58 == main(fp)
 
-#@pytest.mark.skip
+@pytest.mark.skip
 def test_B():
     with open("data","rt") as fp:
         print(main(fp))
+
+#@pytest.mark.skip
+def test_AA0():
+    with open("data0","rt") as fp:
+        assert 26 == main2(fp)
+
+# Infinite loop
+@pytest.mark.skip
+def test_AA1():
+    with open("data1","rt") as fp:
+        assert main2(fp) is None
+
+#@pytest.mark.skip
+def test_AA2():
+    with open("data2","rt") as fp:
+        assert 396 == main2(fp)
+
+#@pytest.mark.skip
+def test_BB():
+    with open("data","rt") as fp:
+        print(main2(fp))
