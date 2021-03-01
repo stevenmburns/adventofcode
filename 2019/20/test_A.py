@@ -85,47 +85,45 @@ def parse(fp):
 
     for icol, tag in enumerate(top_tags):
         if tag is not None and tag != '  ':
-            tag_tbl[(tag,'o')].append( (0,icol))
+            tag_tbl[(tag,'o')] = (0,icol)
 
     for icol, tag in enumerate(bot_tags):
         if tag is not None and tag != '  ':
-            tag_tbl[(tag,'o')].append( (nrows-1,icol))
+            tag_tbl[(tag,'o')] = (nrows-1,icol)
 
     for irow, tag in enumerate(left_tags):
         if tag is not None and tag != '  ':
-            tag_tbl[(tag,'o')].append( (irow,0))
+            tag_tbl[(tag,'o')] = (irow,0)
 
     for irow, tag in enumerate(right_tags):
         if tag is not None and tag != '  ':
-            tag_tbl[(tag,'o')].append( (irow,ncols-1))
+            tag_tbl[(tag,'o')] = (irow,ncols-1)
         
     for icol, tag in enumerate(itop_tags):
         if tag is not None and tag != '  ':
-            tag_tbl[(tag,'i')].append( (0+border-1,icol+border))
+            tag_tbl[(tag,'i')] = (0+border-1,icol+border)
 
     for icol, tag in enumerate(ibot_tags):
         if tag is not None and tag != '  ':
-            tag_tbl[(tag,'i')].append( (nrows-1-border+1,icol+border))
+            tag_tbl[(tag,'i')] = (nrows-1-border+1,icol+border)
 
     for irow, tag in enumerate(ileft_tags):
         if tag is not None and tag != '  ':
-            tag_tbl[(tag,'i')].append( (irow+border,0+border-1))
+            tag_tbl[(tag,'i')] = (irow+border,0+border-1)
 
     for irow, tag in enumerate(iright_tags):
         if tag is not None and tag != '  ':
-            tag_tbl[(tag,'i')].append( (irow+border,ncols-1-border+1))
+            tag_tbl[(tag,'i')] = (irow+border,ncols-1-border+1)
         
 
-    for k, v in tag_tbl.items():
-        assert len(v) == 1
-        for (irow,icol) in v:
-            assert seq[irow+2][icol+2] == '.', (k,v)
+    for k, (irow,icol) in tag_tbl.items():
+        assert seq[irow+2][icol+2] == '.', (k,(irow,icol))
 
     print(tag_tbl)
     for line in seq:
         print(line)
         
-    new_seq = []
+    board = []
     for irow,line in enumerate(seq[2:-2]):
         new_line = ''
         for icol, c in enumerate(line[2:-2]):
@@ -136,9 +134,9 @@ def parse(fp):
                     new_line += c
                 else:
                     new_line += ' '
-        new_seq.append(new_line)
+        board.append(new_line)
 
-    return new_seq, tag_tbl
+    return board, tag_tbl
 
 def determine_path_lengths( board, inv_tag_tbl, p):
     nrows = len(board)
@@ -181,16 +179,13 @@ def main(fp):
     board, tag_tbl = parse(fp)
 
     inv_tag_tbl = {}
-    for k, v in tag_tbl.items():
-        for vv in v:
-            assert vv not in inv_tag_tbl
-            inv_tag_tbl[vv] = k
-
+    for k, vv in tag_tbl.items():
+        assert vv not in inv_tag_tbl
+        inv_tag_tbl[vv] = k
 
     adjacents = {}
 
-    for (tag, ty), v in tag_tbl.items():
-        p = v[0]
+    for (tag, ty), p in tag_tbl.items():
         adjacents[p] = determine_path_lengths( board, inv_tag_tbl, p)
 
     # Add teleporting
@@ -198,22 +193,19 @@ def main(fp):
         if ty == 'i': continue
         if tag in ['AA', 'ZZ']: continue
         v_i = tag_tbl[(tag,'i')]
-        adjacents[ v_o[0]][v_i[0]] = 1
-        adjacents[ v_i[0]][v_o[0]] = 1
+        adjacents[ v_o][v_i] = 1
+        adjacents[ v_i][v_o] = 1
 
-    for (tag, ty), v in tag_tbl.items():
-        p = v[0]
+    for (tag, ty), p in tag_tbl.items():
         print( tag, ty, p)
         for pp, l in adjacents[p].items():
             print('\t', pp, l, inv_tag_tbl[pp])
 
-    return
-
     nrows = len(board)
     ncols = len(board[0])
 
-    start = { tag_tbl[('AA', ty)][0] for ty in 'io' if ('AA', ty) in tag_tbl}
-    final = { tag_tbl[('ZZ', ty)][0] for ty in 'io' if ('ZZ', ty) in tag_tbl}
+    start = { tag_tbl[('AA', ty)] for ty in 'io' if ('AA', ty) in tag_tbl}
+    final = { tag_tbl[('ZZ', ty)] for ty in 'io' if ('ZZ', ty) in tag_tbl}
 
     assert len(start) == 1
     assert len(final) == 1
