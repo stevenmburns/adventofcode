@@ -331,10 +331,14 @@ def main2(fp):
         for new_state,cost in gen_adjacents(p):
 
             new_ghat = ghat + cost
-            new_fhat = new_ghat + (min_l+1)*level
-            #new_fhat = (level, new_ghat)
+            #new_fhat = new_ghat
+            new_fhat = new_ghat + (min_l+1)*new_state[0]
+            #new_fhat = new_state[0]
+            #new_fhat = (new_state[0], new_ghat)
 
             if new_state not in reached or reached[new_state] > new_ghat:
+                if new_state in reached:
+                    print( f'Re-add {new_state} with {new_ghat} which is less than {reached[new_state]}')
                 reached[new_state] = new_ghat
                 heapq.heappush( frontier, (new_fhat, new_state != final, new_state, new_ghat))
 
