@@ -261,10 +261,17 @@ def main2(fp):
     for (tag, ty), p in tag_tbl.items():
         adjacents[p] = determine_path_lengths( board, inv_tag_tbl, p)
 
+    min_l = None
+
     for (tag, ty), p in tag_tbl.items():
         print( tag, ty, p)
         for pp, l in adjacents[p].items():
+            if p != pp:
+                if min_l is None or l < min_l: min_l = l
+
             print('\t', pp, l, inv_tag_tbl[pp])
+
+    print( f'min_l: {min_l}')
 
     nrows = len(board)
     ncols = len(board[0])
@@ -285,21 +292,24 @@ def main2(fp):
     frontier = []
     heapq.heappush(frontier, (0, start != final, start, 0))
 
+    steps = 0
+
     while frontier:
 
         fhat, not_done, state, ghat = heapq.heappop( frontier)
 
         level, p = state
 
-        print( f'headpop: {fhat} {not_done} {state} {inv_tag_tbl[p]} {ghat}') 
+        print( f'{steps}: headpop: {fhat} {not_done} {state} {inv_tag_tbl[p]} {ghat}') 
 
         if not not_done:
-            assert fhat == ghat
             assert ghat == reached[final]
             return ghat
 
         # this has already been or will be processed because the smaller tuple is also on the PQ
-        if ghat > reached[state]: continue
+        if ghat > reached[state]:
+            print( f'Remove from PQ without processing... {state} {ghat} {reached[state]}')
+            continue
 
         def gen_adjacents( p):
             for new_p,cost in adjacents[p].items():
@@ -321,11 +331,14 @@ def main2(fp):
         for new_state,cost in gen_adjacents(p):
 
             new_ghat = ghat + cost
-            new_fhat = new_ghat
- 
+            new_fhat = new_ghat + (min_l+1)*level
+            #new_fhat = (level, new_ghat)
+
             if new_state not in reached or reached[new_state] > new_ghat:
                 reached[new_state] = new_ghat
                 heapq.heappush( frontier, (new_fhat, new_state != final, new_state, new_ghat))
+
+        steps += 1
 
     return None
 
