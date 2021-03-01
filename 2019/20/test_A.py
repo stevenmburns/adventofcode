@@ -85,39 +85,39 @@ def parse(fp):
 
     for icol, tag in enumerate(top_tags):
         if tag is not None and tag != '  ':
-            tag_tbl[tag].append( (0,icol))
+            tag_tbl[(tag,'o')].append( (0,icol))
 
     for icol, tag in enumerate(bot_tags):
         if tag is not None and tag != '  ':
-            tag_tbl[tag].append( (nrows-1,icol))
+            tag_tbl[(tag,'o')].append( (nrows-1,icol))
 
     for irow, tag in enumerate(left_tags):
         if tag is not None and tag != '  ':
-            tag_tbl[tag].append( (irow,0))
+            tag_tbl[(tag,'o')].append( (irow,0))
 
     for irow, tag in enumerate(right_tags):
         if tag is not None and tag != '  ':
-            tag_tbl[tag].append( (irow,ncols-1))
+            tag_tbl[(tag,'o')].append( (irow,ncols-1))
         
     for icol, tag in enumerate(itop_tags):
         if tag is not None and tag != '  ':
-            tag_tbl[tag].append( (0+border-1,icol+border))
+            tag_tbl[(tag,'i')].append( (0+border-1,icol+border))
 
     for icol, tag in enumerate(ibot_tags):
         if tag is not None and tag != '  ':
-            tag_tbl[tag].append( (nrows-1-border+1,icol+border))
+            tag_tbl[(tag,'i')].append( (nrows-1-border+1,icol+border))
 
     for irow, tag in enumerate(ileft_tags):
         if tag is not None and tag != '  ':
-            tag_tbl[tag].append( (irow+border,0+border-1))
+            tag_tbl[(tag,'i')].append( (irow+border,0+border-1))
 
     for irow, tag in enumerate(iright_tags):
         if tag is not None and tag != '  ':
-            tag_tbl[tag].append( (irow+border,ncols-1-border+1))
+            tag_tbl[(tag,'i')].append( (irow+border,ncols-1-border+1))
         
 
     for k, v in tag_tbl.items():
-        assert len(v) == 2 or k == 'AA' or k == 'ZZ'
+        assert len(v) == 1
         for (irow,icol) in v:
             assert seq[irow+2][icol+2] == '.', (k,v)
 
@@ -138,14 +138,9 @@ def parse(fp):
                     new_line += ' '
         new_seq.append(new_line)
 
-    print(tag_tbl)
-    for line in new_seq:
-        print(line)
-
-
     return new_seq, tag_tbl
 
-def determine_path_lengths( board, p):
+def determine_path_lengths( board, inv_tag_tbl, p):
     nrows = len(board)
     ncols = len(board[0])
 
@@ -169,11 +164,11 @@ def determine_path_lengths( board, p):
                 if 0 <= jrow < nrows and 0 <= jcol < ncols:
                     c = board[jrow][jcol]
                     if c == '#': continue
-                    if c != '.':
+                    if c == ' ': continue
+                    if (jrow,jcol) in inv_tag_tbl:
                         if (jrow,jcol) not in length_tbl:
                             length_tbl[ (jrow,jcol)] = level+1
-                    else:
-                        new_frontier.add( (jrow,jcol))
+                    new_frontier.add( (jrow,jcol))
 
         reached = reached.union(frontier)
         frontier = new_frontier.difference(reached)
@@ -183,79 +178,75 @@ def determine_path_lengths( board, p):
 
 
 def main(fp):
-    board = parse(fp)
+    board, tag_tbl = parse(fp)
 
-    return 23
+    inv_tag_tbl = {}
+    for k, v in tag_tbl.items():
+        for vv in v:
+            assert vv not in inv_tag_tbl
+            inv_tag_tbl[vv] = k
+
+
+    adjacents = {}
+
+    for (tag, ty), v in tag_tbl.items():
+        p = v[0]
+        adjacents[p] = determine_path_lengths( board, inv_tag_tbl, p)
+
+    # Add teleporting
+    for (tag, ty), v_o in tag_tbl.items():
+        if ty == 'i': continue
+        if tag in ['AA', 'ZZ']: continue
+        v_i = tag_tbl[(tag,'i')]
+        adjacents[ v_o[0]][v_i[0]] = 1
+        adjacents[ v_i[0]][v_o[0]] = 1
+
+    for (tag, ty), v in tag_tbl.items():
+        p = v[0]
+        print( tag, ty, p)
+        for pp, l in adjacents[p].items():
+            print('\t', pp, l, inv_tag_tbl[pp])
+
+    return
 
     nrows = len(board)
     ncols = len(board[0])
- 
-    adjacents = {}
 
-    start = set()
-    all_keys = set()
-    for irow,line in enumerate(board):
-        assert ncols == len(line)
-        for icol,c in enumerate(line):
-            if c == '@':
-                start.add((irow,icol))
-            if c.islower():
-                all_keys.add( c)
-
-            if c == '@' or c.isupper() or c.islower():
-                adjacents[ (irow,icol)] = determine_path_lengths(board, (irow,icol))
-
-    print()
-    for k,v in adjacents.items():
-        print( k, board[k[0]][k[1]])
-        for kk,vv in v.items():
-            print( '\t', kk, board[kk[0]][kk[1]], vv)
+    start = { tag_tbl[('AA', ty)][0] for ty in 'io' if ('AA', ty) in tag_tbl}
+    final = { tag_tbl[('ZZ', ty)][0] for ty in 'io' if ('ZZ', ty) in tag_tbl}
 
     assert len(start) == 1
+    assert len(final) == 1
 
-    state = frozenset(), list(start)[0]
+    start = list(start)[0]
+    final = list(final)[0]
 
-    reached = {} # state => steps
+    print(start,final)
+
+    reached = { start: 0} # state => steps
 
     frontier = []
-    heapq.heappush(frontier, (0, state))
+    heapq.heappush(frontier, (0, start))
 
     while frontier:
 
         level, state = heapq.heappop( frontier)
 
-        print( f'headpop: {level} {state}') 
+        print( f'headpop: {level} {state} {inv_tag_tbl[state]}') 
 
-        if state not in reached:
-            reached[state] = level
+        (irow,icol) = state
 
-        keys_acquired, (irow,icol) = state
+        for new_state,cost in adjacents[state].items():
+            new_level = level + cost
 
-        for (jrow,jcol),cost in adjacents[(irow,icol)].items():
-            new_cost = level + cost
-
-            if (jrow,jcol) == (irow,icol): continue
+            if new_state == state: continue
  
-            c = board[jrow][jcol]
-            assert c != '#'
-            if c.isupper() and c.lower() not in keys_acquired: continue
-            if c.islower():
-                new_keys_acquired = set(keys_acquired)
-                new_keys_acquired.add( c)
+            if new_state not in reached or reached[new_state] > new_level:
+                print(f'setting {new_state} {inv_tag_tbl[new_state]} to {new_level}')
+                reached[new_state] = new_level
+                heapq.heappush( frontier, (new_level,new_state))
 
-                if new_keys_acquired == all_keys:
-                    return new_cost
-
-                new_state = (frozenset( new_keys_acquired), (jrow,jcol))
-            else:
-                new_state = (keys_acquired, (jrow,jcol))
-
-
-            if new_state not in reached or reached[new_state] > new_cost:
-                reached[new_state] = new_cost
-                heapq.heappush( frontier, (new_cost,new_state))
-
-    return None
+    return reached[final]
 
 
 #@pytest.mark.skip
@@ -263,17 +254,12 @@ def test_A0():
     with open("data0","rt") as fp:
         assert 23 == main(fp)
 
-@pytest.mark.skip
+#@pytest.mark.skip
 def test_A1():
     with open("data1","rt") as fp:
         assert 58 == main(fp)
 
-@pytest.mark.skip
+#@pytest.mark.skip
 def test_B():
     with open("data","rt") as fp:
         print(main(fp))
-
-
-
-
-
