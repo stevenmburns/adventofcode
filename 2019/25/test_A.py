@@ -120,7 +120,7 @@ def main(fp):
     t = { 's': 'south', 'w': 'west', 'e': 'east', 'n': 'north'}
 
     if False:
-        txt = 'wnne'
+        txt = 'wsw'
         print(recv())
         for c in txt:
             send(t[c])
@@ -197,41 +197,42 @@ def main(fp):
         return place, doors, items
 
 
-
-    dirs = { 'north': (-1,0), 'east': (0, 1), 'south': (1,0), 'west': (0,-1)}
     opposite_door = { 'north': 'south', 'east': 'west', 'south': 'north', 'west': 'east'}
-    dont_pick_up = { 'molten lava', 'photons', 'infinite loop'}
+    dont_pick_up = { 'molten lava', 'photons', 'infinite loop', 'escape pod', 'giant electromagnet'}
 
     def run_dfs():
         reached = {}
         path = []
 
-        def dfs( u):
-            place, doors, items = parse_response( recv())
+        def dfs( place, doors, items):
 
-            if u in reached:
-                assert reached[u][0] == place
+            if place in reached:
                 return
 
-            print( f'enter dfs({u}): {place} {doors}')
+            reached[place] = (place, doors, items, path[:])
+            if place == 'Security Checkpoint':
+                return
 
-            reached[u] = (place, doors, items, path[:])
+
+            place1, doors1 = place, doors[:]
 
             for door in doors:
                 print( f'\tchoose door {door}')
-                d = dirs[door]
-                v = u[0]+d[0], u[1]+d[1]
                 assert 10 == send(door)
                 path.append(door)
-                dfs( v)
+                place1, doors1, items1 = parse_response( recv(), print_line=True)                
+                dfs( place1, doors1, items1)
                 path.pop()
                 assert 10 == send(opposite_door[door])
-                place1, doors1, items1 = parse_response( recv())
-                assert place == place1 and doors == doors1
+                place1, doors1, items1 = parse_response( recv(), print_line=True)
+                assert place == place1, path
+                assert doors == doors1
 
-            print( f'leave dfs({u}): {place} {doors}')
+            print( f'leave dfs({place}): {place} {doors}')
+            assert (place, doors, items) == (place1, doors1, items1)
 
-        dfs( (0,0))
+        place, doors, items = parse_response( recv())
+        dfs( place, doors, items)
         assert not path
         return reached
 
@@ -241,22 +242,6 @@ def main(fp):
         print(k)
         for v in vv:
             print( f'\t{v}')
-
-    mrow,Mrow = None,None
-    mcol,Mcol = None,None
-
-    for (irow,icol),v in reached.items():
-        if mrow is None or irow < mrow: mrow = irow
-        if Mrow is None or irow > Mrow: Mrow = irow
-        if mcol is None or icol < mcol: mcol = icol
-        if Mcol is None or icol > Mcol: Mcol = icol
-
-    print()
-    for irow in range(mrow,Mrow+1):
-        line = ''
-        for icol in range(mcol,Mcol+1):
-            line += '*' if (irow,icol) == (0,0) else '#' if (irow,icol) in reached else '.'
-        print(line)
 
     all_items = set()
     for k,v in reached.items():
@@ -342,41 +327,45 @@ def main(fp):
         return_items_in_set( set(range(len(okay_items))))
 
     
-    if False:
+    if True:
         get_all_items()
 
-        for p, (place,doors,items,path) in reached.items():
+        send('inv')
+        print(recv())
 
-            print(f'Working on {p}')
 
-            for door in path:
-                assert 10 == send(door)                
-                place1, doors1, items1 = parse_response( recv())
-                print( f'{place1}')
+        (place,doors,items,path) = reached['Security Checkpoint']
+        assert path
+        print(f'At SC {place} {doors} {items} {path}')
 
-            for s in power_set:
-                print(f'\tWorking on {s}')
 
-                for i in s:
-                    item = okay_items[i]
-                    send(f'drop {item}')
-                    assert parse_drop_response(recv()), (i,s)
+        for door in path:
+            assert 10 == send(door)                
+            place1, doors1, items1 = parse_response( recv(), print_line=True)
 
-                if path:
-                    for door in doors1:
-                        assert 10 == send(door)                
-                        _ = parse_response( recv(), print_line=True)
-                        assert 10 == send(opposite_door[door])                
-                        _ = parse_response( recv(), print_line=True)
+        for s in power_set:
+            print(f'\tWorking on {s}')
 
-                for i in s:
-                    item = okay_items[i]
-                    send(f'take {item}')
-                    assert parse_take_response(recv()), (i,s)
+            for i in s:
+                item = okay_items[i]
+                send(f'drop {item}')
+                assert parse_drop_response(recv()), (i,s)
 
-            for door in reversed(path):
-                assert 10 == send(opposite_door[door])                
-                place1, doors1, items1 = parse_response( recv())
+            if path:
+                print( f'Goal: {place1} {doors1} {items1}')
+                for door in doors1:
+                    if door == opposite_door[path[-1]]: continue
+                    assert 10 == send(door)                
+                    _ = parse_response( recv(), print_line=True)
+
+            for i in s:
+                item = okay_items[i]
+                send(f'take {item}')
+                assert parse_take_response(recv()), (i,s)
+
+        for door in reversed(path):
+            assert 10 == send(opposite_door[door])                
+            place1, doors1, items1 = parse_response( recv())
 
 
         return_all_items()
