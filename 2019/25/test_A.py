@@ -117,26 +117,45 @@ def main(fp):
         return rc
 
 
+    t = { 's': 'south', 'w': 'west', 'e': 'east', 'n': 'north'}
+
+    if False:
+        txt = 'wnne'
+        print(recv())
+        for c in txt:
+            send(t[c])
+            print(recv())
+
+        while True:
+            send(input())
+            print(recv())
+
     def parse_take_response( s):
         p = re.compile( r'^You don\'t see that item here.$')
+        p_weight_clue = re.compile( r'(heavier|lighter)')
         for line in s.split('\n'):
+            m = p_weight_clue.match(line)
+            if m:
+                logging.error( f'Weight clue: {line}')
             m = p.match(line)
-            logging.debug(line)
             if m:
                 return False
         return True
 
     def parse_drop_response( s):
         p = re.compile( r'^You don\'t have that item.$')
+        p_weight_clue = re.compile( r'(heavier|lighter)')
         for line in s.split('\n'):
+            m = p_weight_clue.match(line)
+            if m:
+                logging.error( f'Weight clue: {line}')
             m = p.match(line)
-            logging.debug(line)
             if m:
                 return False
         return True
 
 
-    def parse_response( s):
+    def parse_response( s, print_line=False):
         p = re.compile( r'^== (.*) ==$')
         p_doors_header = re.compile( r'^Doors here lead:$')
         p_items_header = re.compile( r'^Items here:$')
@@ -153,7 +172,8 @@ def main(fp):
                 logging.error( f'Weight clue: {line}')
 
             m = p.match(line)
-            logging.debug(line)
+            if print_line:
+                print(line)
             if m:
                 place = m.groups()[0]
                 continue
@@ -188,19 +208,28 @@ def main(fp):
 
         def dfs( u):
             place, doors, items = parse_response( recv())
+
+            if u in reached:
+                assert reached[u][0] == place
+                return
+
+            print( f'enter dfs({u}): {place} {doors}')
+
             reached[u] = (place, doors, items, path[:])
 
             for door in doors:
+                print( f'\tchoose door {door}')
                 d = dirs[door]
                 v = u[0]+d[0], u[1]+d[1]
-                if v not in reached:
-                    assert 10 == send(door)
-                    path.append(door)
-                    dfs( v)
-                    path.pop()
-                    assert 10 == send(opposite_door[door])
-                    place1, doors1, items1 = parse_response( recv())
-                    assert place == place1 and doors == doors1
+                assert 10 == send(door)
+                path.append(door)
+                dfs( v)
+                path.pop()
+                assert 10 == send(opposite_door[door])
+                place1, doors1, items1 = parse_response( recv())
+                assert place == place1 and doors == doors1
+
+            print( f'leave dfs({u}): {place} {doors}')
 
         dfs( (0,0))
         assert not path
@@ -313,60 +342,48 @@ def main(fp):
         return_items_in_set( set(range(len(okay_items))))
 
     
-    get_all_items()
+    if False:
+        get_all_items()
 
-    for p, (place,doors,items,path) in reached.items():
+        for p, (place,doors,items,path) in reached.items():
 
-        print(f'Working on {p}')
+            print(f'Working on {p}')
 
-        for s in power_set:
-            print(f'\tWorking on {s}')
             for door in path:
                 assert 10 == send(door)                
                 place1, doors1, items1 = parse_response( recv())
+                print( f'{place1}')
 
-            for i in s:
-                item = okay_items[i]
-                logging.debug( f'trying to drop {item}')
-                send(f'drop {item}')
-                assert parse_drop_response(recv()), (i,s)
+            for s in power_set:
+                print(f'\tWorking on {s}')
+
+                for i in s:
+                    item = okay_items[i]
+                    send(f'drop {item}')
+                    assert parse_drop_response(recv()), (i,s)
+
+                if path:
+                    for door in doors1:
+                        assert 10 == send(door)                
+                        _ = parse_response( recv(), print_line=True)
+                        assert 10 == send(opposite_door[door])                
+                        _ = parse_response( recv(), print_line=True)
+
+                for i in s:
+                    item = okay_items[i]
+                    send(f'take {item}')
+                    assert parse_take_response(recv()), (i,s)
 
             for door in reversed(path):
                 assert 10 == send(opposite_door[door])                
                 place1, doors1, items1 = parse_response( recv())
 
 
-            if True:
-                send('south')
-                _, _, _ = parse_response( recv())
-                send('north')
-                reached1 = run_dfs()
-                logging.info( f'{okay_items}')
-                places = set( pp[0] for pp in reached.values())
-                places1 = set( pp[0] for pp in reached1.values())
-                logging.info( f'{set(s)} {places} {places1}')
-                assert places == places1
-
-            for door in path:
-                assert 10 == send(door)                
-                place1, doors1, items1 = parse_response( recv())
-
-            for i in s:
-                item = okay_items[i]
-                logging.debug( f'trying to take {item}')
-                send(f'take {item}')
-                assert parse_take_response(recv()), (i,s)
-
-            for door in reversed(path):
-                assert 10 == send(opposite_door[door])                
-                place1, doors1, items1 = parse_response( recv())
-
-
-    return_all_items()
+        return_all_items()
 
     if False:
         for s in power_set:
-
+            print( s)
             get_items_in_set(s)
 
             if True:
@@ -381,8 +398,7 @@ def main(fp):
                 logging.info( f'{set(s)} {places} {places1}')
                 assert places == places1
 
-
-                if False:
+                if True:
                     send('inv')
                     txt = recv()
                     logging.info(txt)
