@@ -1,0 +1,49 @@
+ 0: jio a, +22 (22)
+    inc a
+    tpl a
+    tpl a
+    tpl a
+ 5: inc a
+    tpl a
+    inc a
+    tpl a
+    inc a
+10: inc a
+    tpl a
+    inc a
+    inc a
+    tpl a
+15: inc a
+    inc a
+    tpl a
+    inc a
+    inc a
+20: tpl a
+    jmp +19 (40)
+22: tpl a
+    tpl a
+    tpl a
+25: tpl a
+    inc a
+    inc a
+    tpl a
+    inc a
+30: tpl a
+    inc a
+    inc a
+    tpl a
+    inc a
+35: inc a
+    tpl a
+    inc a
+    tpl a
+    tpl a
+40: jio a, +8 (48)
+    inc b
+    jie a, +4 (46)
+    tpl a
+    inc a
+45: jmp +2 (47)
+    hlf a
+    jmp -7 (40)
+48:
