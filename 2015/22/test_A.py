@@ -59,8 +59,14 @@ class Boss:
     def summary(self):
         logging.info( f'- Boss has {self.hitpoints} hit points')
 
+hard = True
 
 def player_step( spell, player, boss):
+
+    if hard:
+        player.hitpoints -= 1
+        if player.hitpoints <= 0:
+            return 'boss'
 
     logging.info( f'')
     logging.info( f'-- Player turn --')
