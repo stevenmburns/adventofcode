@@ -76,31 +76,29 @@ def main2(fp):
     raster = defaultdict(list)
 
     for idx, (p0, p1) in enumerate(lines):
+
+
+        def emit(t0, t1, dx, dy, x0, y0):
+            for t in range(t0, t1+1):
+                raster[(x0+t*dx,y0+t*dy)].append(idx)
+
         x0, y0 = p0
         x1, y1 = p1
-
+        
         if x0 == x1: # vertical
-            for y in range(min(y0,y1), max(y0,y1)+1):
-                raster[(x0,y)].append(idx)
-
+            emit(min(y0,y1), max(y0,y1), 0, 1, x0, min(y0,y1))
         elif y0 == y1: # horizontal
-            for x in range(min(x0,x1), max(x0,x1)+1):
-                raster[(x,y0)].append(idx)
-
+            emit(min(x0,x1), max(x0,x1), 1, 0, min(x0,x1), y0)
         elif x0 < x1 and y0 < y1 or x0 > x1 and y0 > y1: # slope 1
-            x0, x1 = min(x0,x1), max(x0,x1)
-            y0, y1 = min(y0,y1), max(y0,y1)
             assert x1 - x0 == y1 - y0
-            for x in range(x0, x1+1):
-                y = y0 + (x - x0)
-                raster[(x,y)].append(idx)
-
+            emit(min(x0,x1), max(x0,x1), 1, 1, min(x0,x1), min(y0,y1))
         elif x0 > x1 and y0 < y1 or x0 < x1 and y0 > y1: # slope -1
-            x0, x1 = min(x0,x1), max(x0,x1)
-            y0, y1 = min(y0,y1), max(y0,y1)
-            for x in range(x0, x1+1):
-                y = y1 + (x0 - x)
-                raster[(x,y)].append(idx) 
+            assert x1 - x0 == y0 - y1
+            emit(min(x0,x1), max(x0,x1), 1, -1, min(x0,x1), max(y0,y1))
+        else:
+            assert False
+
+    print(raster)
 
     doubles = set()
     for (x,y), ids in raster.items():
@@ -122,6 +120,6 @@ def test_AA0():
     with open('data0') as fp:
         assert 12 == main2(fp)
 
-def test_BB():
+def xtest_BB():
     with open('data') as fp:
         print(main2(fp))
