@@ -41,16 +41,7 @@ def aux(a, b):
 
     for perm in permutations(segs):
         m = dict(zip(segs, perm))
-
-        
-
-        ok = True
-        for aa in a:
-            s = frozenset( [ m[c] for c in aa ] )
-            if s not in legal:
-                ok = False
-                break
-        if ok:
+        if all(frozenset( m[c] for c in aa ) in legal for aa in a):
             legal_perms.add(perm)
 
     assert len(legal_perms) == 1
@@ -60,10 +51,8 @@ def aux(a, b):
 
     res = 0
     for bb in b:
-        s = frozenset( [ m[c] for c in bb ] )
-        code = legal[s]
+        code = legal[frozenset( m[c] for c in bb )]
         res = res*10 + code
-
 
     return res
 
