@@ -5,76 +5,41 @@ from collections import defaultdict, Counter, deque
 
 def parse(fp):
     for line in fp:
-        line = line.rstrip('\n')
-        yield line
+        yield line.rstrip('\n')
 
+m = { '{':'}', '[':']', '(':')', '<':'>' }
+
+def aux(line):
+    stack = []
+    im = { v: k for k, v in m.items() }
+    for c in line:
+        if c in m:
+            stack.append(c)
+        elif c in im:
+            if not stack or im[c] != stack[-1]:
+                return c, stack
+            stack.pop()
+    else:
+        return None, stack
 
 def main(fp):
-    data = parse(fp)
-    m = { '{':'}', '[':']', '(':')', '<':'>' }
-    im = { v: k for k, v in m.items() } 
-    def aux(s):
-        stack = []
-        while s:
-            c = s.popleft()
-            if c in m:
-                stack.append(c)
-            elif c in im:
-                if not stack:
-                    return c, stack
-                if im[c] != stack[-1]:
-                    return c, stack
-                stack.pop()
-        else:
-            return None, stack
-
     tbl = { ')' : 3, '}' : 1197, ']' : 57, '>' : 25137 }
-
-    res = 0
-    for line in data:
-        s = deque(line)
-        c, stack = aux(s)
-        if c is not None:
-            res += tbl[c]
-
-
-    return res
+    return sum(tbl[c] if (c := aux(line)[0]) is not None else 0
+                for line in  parse(fp))
 
 def main2(fp):
-    data = parse(fp)
-    m = { '{':'}', '[':']', '(':')', '<':'>' }
-    im = { v: k for k, v in m.items() } 
-    def aux(s):
-        stack = []
-        while s:
-            c = s.popleft()
-            if c in m:
-                stack.append(c)
-            elif c in im:
-                if not stack:
-                    return c, stack
-                if im[c] != stack[-1]:
-                    return c, stack
-                stack.pop()
-        else:
-            return None, stack
-
     tbl = { ')' : 1, '}' : 3, ']' : 2, '>' : 4 }
 
     scores = []
-    for line in data:
-        s = deque(line)
-        c, stack = aux(s)
+    for line in parse(fp):
+        c, stack = aux(line)
         if c is None:
             score = 0
-            print('stack:', stack)
             while stack:
                 cc = stack.pop()
                 score = score*5 + tbl[m[cc]]
 
             scores.append(score)
-
-    print(scores)
 
     assert len(scores) % 2 == 1
     scores.sort()
