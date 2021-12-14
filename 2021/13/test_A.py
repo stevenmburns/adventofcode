@@ -28,17 +28,10 @@ def parse(fp):
     return points, folds
 
 def print_board(board):
-
     mx, Mx = min(x for x,_ in board), max(x for x,_ in board)
     my, My = min(y for _,y in board), max(y for _,y in board)
-
     for y in range(my, My+1):
-        for x in range(mx, Mx+1):
-            if (x, y) in board:
-                print('#', end='')
-            else:
-                print('.', end='')
-        print()
+        print(''.join('#' if (x, y) in board else '.' for x in range(mx, Mx+1)))
 
 
 
