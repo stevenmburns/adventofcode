@@ -1,7 +1,4 @@
-from os import rename
-import re
-from itertools import permutations, chain, product
-from collections import defaultdict, Counter, deque
+from functools import reduce
 
 def parse(fp):
     for line in fp:
@@ -24,28 +21,14 @@ def aux(line):
 
 def main(fp):
     tbl = { ')' : 3, '}' : 1197, ']' : 57, '>' : 25137 }
-    return sum(tbl[c] if (c := aux(line)[0]) is not None else 0
-                for line in  parse(fp))
+    return sum(tbl[p[0]] if (p := aux(line))[0] is not None else 0
+                for line in parse(fp))
 
 def main2(fp):
     tbl = { ')' : 1, '}' : 3, ']' : 2, '>' : 4 }
-
-    scores = []
-    for line in parse(fp):
-        c, stack = aux(line)
-        if c is None:
-            score = 0
-            while stack:
-                cc = stack.pop()
-                score = score*5 + tbl[m[cc]]
-
-            scores.append(score)
-
-    assert len(scores) % 2 == 1
-    scores.sort()
-
+    scores = list(sorted(reduce(lambda x, y: x*5 + tbl[m[y]], reversed(p[1]), 0) 
+                    for line in parse(fp) if (p := aux(line))[0] is None))
     return scores[len(scores)//2]
-
 
 def test_A0():
     with open('data0') as fp:
