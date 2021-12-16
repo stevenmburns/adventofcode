@@ -1,6 +1,7 @@
 import pytest
 import io
 from functools import reduce
+from operator import add, mul
 
 def parse(fp):
     tbl = {}
@@ -57,9 +58,9 @@ def parse_packet(bits, i):
                 fields.append(field)
 
         if typeID == 0:
-            field = sum(fields)
+            field = reduce(add, fields)
         elif typeID == 1:
-            field = reduce(lambda x, y: x * y, fields)
+            field = reduce(mul, fields)
         elif typeID == 2:
             field = min(fields)
         elif typeID == 3:
@@ -95,7 +96,7 @@ def main2(fp):
     
 
 def test_A0():
-    with open('data0') as fp:
+    with io.StringIO('D2FE28') as fp:
         assert 6 == main(fp)
 
 
