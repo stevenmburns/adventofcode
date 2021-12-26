@@ -122,16 +122,16 @@ def main(fp):
 
 
 
-    states = { (0,0,0,0) : '' }
+    states = { 0 : '' }
 
-    for idx, group in enumerate(groups[:5]):
+    for idx, group in enumerate(groups[:]):
         new_states = {}
         for state0, path0 in states.items():
             for c in range(1,10):
                 tape = deque([c])
-                state = state0
+                state = (0,0,0,state0)
                 legal = True
-                z = state[3]
+                z = state0
                 x = 1 if (z % 26 + cs[idx]) != c else 0
                 z = (z // ds[idx])*(25*x+1)+x*(c+es[idx])
                 for cmd in group:
@@ -142,7 +142,7 @@ def main(fp):
                     state, tape = step(state, tape, cmd)
                 assert not tape
                 assert z == state[3]
-                state = (0,0,0) + state[3:]
+                state = state[3]
                 cand = path0 + str(c)
                 #print(state0, path0, c, legal, state, cand)
                 if legal and (state not in new_states or cand > new_states[state]):
@@ -152,7 +152,7 @@ def main(fp):
         states = new_states
         print(idx, len(states))
 
-    return max( path for state,path in states.items() if state[3] == 0)
+    return max( path for state,path in states.items() if state == 0)
 
 
 
