@@ -173,31 +173,16 @@ def main(fp):
     edge_info = {}
 
     for ia, ib, rot, diff, hits in matches:
-
-        res = Transformation.translate(*diff).postMult(rot)
-
-        a, b = a_dict[ia], b_dict[ib]
-
-        for iaa, ibb in hits:
-            aa, bb = a[iaa], b[ibb]
-
-            assert res.hit(bb) == aa
-
-        edge_info[(ia, ib)] = (res, hits)
-
-    for ia, ib, rot, diff, hits in matches:
-
-        res = Transformation.translate(*diff).postMult(rot).inverse()
-        invhits = [(ibb, iaa) for iaa, ibb in hits]
+        tr = Transformation.translate(*diff).postMult(rot)
+        edge_info[(ia, ib)] = tr
+        inv_tr = tr.inverse()
+        edge_info[(ib, ia)] = inv_tr
 
         a, b = a_dict[ia], b_dict[ib]
-
         for iaa, ibb in hits:
             aa, bb = a[iaa], b[ibb]
-
-            assert res.hit(aa) == bb
-
-        edge_info[(ib, ia)] = (res, invhits)
+            assert tr.hit(bb) == aa
+            assert inv_tr.hit(aa) == bb
 
 
     edges = defaultdict(list)
@@ -214,7 +199,7 @@ def main(fp):
         tr_dict[u] = tr
         for v in edges[u]:
             if v not in visited:
-                dfs(v, tr.postMult(edge_info[(u, v)][0]))
+                dfs(v, tr.postMult(edge_info[(u, v)]))
 
     dfs(0, Transformation())
 
