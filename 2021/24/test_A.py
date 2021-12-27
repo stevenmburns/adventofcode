@@ -128,21 +128,12 @@ def main(fp):
         new_states = {}
         for state0, path0 in states.items():
             for c in range(1,10):
-                tape = deque([c])
-                state = (0,0,0,state0)
                 legal = True
                 z = state0
                 x = 1 if (z % 26 + cs[idx]) != c else 0
                 z = (z // ds[idx])*(25*x+1)+x*(c+es[idx])
-                for cmd in group:
-                    if not legal_step(state, tape, cmd):
-                        print('illegal step:', c, state, tape, cmd)
-                        legal = False
-                        break
-                    state, tape = step(state, tape, cmd)
-                assert not tape
-                assert z == state[3]
-                state = state[3]
+
+                state = z
                 cand = path0 + str(c)
                 #print(state0, path0, c, legal, state, cand)
                 if legal and (state not in new_states or cand > new_states[state]):
@@ -154,9 +145,66 @@ def main(fp):
 
     return max( path for state,path in states.items() if state == 0)
 
+def main2(fp):
+    cmds = list(parse(fp))
+    groups = []
+    for cmd in cmds:
+        if cmd[0] == 'inp':
+            groups.append([cmd])
+        else:
+            assert groups
+            groups[-1].append(cmd)
+
+    print([len(group) for group in groups])
+
+    for i in range(len(groups[0])):
+        cmds = [group[i] for group in groups]
+        if all(cmds[0] == cmd for cmd in cmds):
+            print(':'.join(cmds[0]))
+        elif all(cmds[0][0] == cmd[0] and cmds[0][1] == cmd[1] for cmd in cmds):
+            print(':'.join(cmds[0][:2]), [int(cmd[2]) for cmd in cmds])
+        else:
+            assert False
+
+    ds = [int(group[4][2]) for group in groups]
+
+    cs = [int(group[5][2]) for group in groups]
+    es = [int(group[15][2]) for group in groups]
+
+    print(ds, cs, es)
 
 
-#@pytest.mark.skip
+
+    states = { 0 : '' }
+
+    for idx, group in enumerate(groups[:]):
+        new_states = {}
+        for state0, path0 in states.items():
+            for c in range(1,10):
+                legal = True
+                z = state0
+                x = 1 if (z % 26 + cs[idx]) != c else 0
+                z = (z // ds[idx])*(25*x+1)+x*(c+es[idx])
+
+                state = z
+                cand = path0 + str(c)
+                #print(state0, path0, c, legal, state, cand)
+                if legal and (state not in new_states or cand < new_states[state]):
+                    new_states[state] = cand
+
+
+        states = new_states
+        print(idx, len(states))
+
+    return min( path for state,path in states.items() if state == 0)
+
+
+@pytest.mark.skip
 def test_B():
     with open('data', 'rt') as fp:
         print(main(fp))
+
+#@pytest.mark.skip
+def test_BB():
+    with open('data', 'rt') as fp:
+        print(main2(fp))
