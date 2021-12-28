@@ -173,23 +173,24 @@ def main(txt):
     end = grid_to_state(nodes, grid_end)
 
     def heuristic(u):
-        return 0
         grid0 = state_to_grid(u, nodes, grid)
         res = 0
         inplace = defaultdict(int)
-        out_of_place_in_column = defaultdict(int)
-        for k, j in columns.item():
+        for k, j in columns.items():
             for i in range(m-2, 1, -1):
                 if grid0[i][j] == k:
                     inplace[k] += 1
                 else:
                     break
 
-        for k, j in columns.item():
+        for k, j in columns.items():
             for i in range(m-2-inplace[k], 1, -1):
                 if grid0[i][j] == k:
-                    out_of_place_in_column[k] += 1
+                    res += (i-1) * costs[k]
 
+        for k, j in columns.items():
+            p = 4 - inplace[k]
+            res += p*(p+1)//2 * costs[k]
 
         
 
@@ -200,7 +201,9 @@ def main(txt):
                 if grid0[i][j] in 'ABCD':
                     if columns[token] == j:
                         pass
-                    res += 1
+                    else:
+                        res += abs(columns[token] - j)*costs[token]
+                        res += (i-1)*costs[token]
         return res
 
     dist = { start : 0 }
@@ -242,7 +245,7 @@ def main(txt):
 
     return dist[end]
 
-def xtest_A():
+def test_A():
     txt = \
 """#############
 #...........#
