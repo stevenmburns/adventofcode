@@ -173,6 +173,7 @@ def main(txt):
     end = grid_to_state(nodes, grid_end)
 
     def heuristic(u):
+        return 0
         grid0 = state_to_grid(u, nodes, grid)
         res = 0
         inplace = defaultdict(int)
@@ -197,7 +198,8 @@ def main(txt):
                 token = grid0[i][j]
 
                 if grid0[i][j] in 'ABCD':
-                    if columns[token] == j and ':
+                    if columns[token] == j:
+                        pass
                     res += 1
         return res
 
@@ -260,7 +262,7 @@ def xtest_B():
 """
     print(main(txt))
 
-def test_AA():
+def xtest_AA():
     txt = \
 """#############
 #...........#
@@ -272,7 +274,7 @@ def test_AA():
 """
     print(main(txt))
 
-def xtest_BB():
+def test_BB():
     txt = \
 """#############
 #...........#
