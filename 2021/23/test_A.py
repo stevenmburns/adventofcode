@@ -1,5 +1,7 @@
 
 from copy import deepcopy
+from collections import defaultdict
+import heapq
 
 def parse(txt):
     grid = txt.split('\n')[:-1]
@@ -31,6 +33,8 @@ def grid_to_state(nodes, grid):
 
 def main(txt):
     grid = parse(txt)
+    m = len(grid)
+    n = len(grid[0])
 
     nodes = []
     for i in range(len(grid)):
@@ -45,11 +49,12 @@ def main(txt):
     def move( i, j, ii, jj, grid):
         assert grid[i][j] not in ' #.'
         assert grid[ii][jj] == '.'
+        assert not ( ii == 1 and jj in [3,5,7,9] )
         token = grid[i][j]
         grid[ii][jj] = token
         grid[i][j] = '.'
 
-        prnt(grid)
+        #prnt(grid)
 
         if i > 1 and ii > 1:
             dist = i-1 + ii-1 + abs(j-jj)
@@ -58,55 +63,202 @@ def main(txt):
 
         cost = dist * costs[token]
 
-        print( f'----{cost}----')
+        #print( f'----{cost}----')
 
         return cost
 
-    state = grid_to_state(nodes, grid)
+    def potential_moves(grid):
+        m = len(grid)
+        n = len(grid[0])
+        for i in range(m):
+            for j in range(n):
+                if grid[i][j] in 'ABCD':
+                    for ii in range(m):
+                        for jj in range(n):
+                            if grid[ii][jj] == '.':
+                                yield (i, j, ii, jj)
 
-    grid0 = state_to_grid(state, nodes, grid)
+    columns = { 'A': 3, 'B': 5, 'C': 7, 'D': 9 }
+    inv_columns = { v: k for k, v in columns.items() }
 
-    cost = 0
-    cost += move( 2, 9, 1, 10, grid0)
-    cost += move( 3, 9, 1, 1, grid0)
-    cost += move( 2, 3, 1, 2, grid0)
-    cost += move( 4, 9, 1, 7, grid0)
-    cost += move( 5, 9, 1, 8, grid0)
-    return cost
-    cost += move( 1, 10, 5, 9, grid0)
-    cost += move( 1, 8, 1, 11, grid0)
-    cost += move( 1, 7, 1, 10, grid0)
-    cost += move( 3, 3, 4, 9, grid0)
-    cost += move( 4, 3, 3, 9, grid0)
-    cost += move( 1, 2, 1, 4, grid0)
-    cost += move( 1, 1, 4, 3, grid0)
-    cost += move( 1, 4, 1, 1, grid0)
-    cost += move( 2, 5, 1, 2, grid0)
-    cost += move( 3, 5, 1, 3, grid0)
-    cost += move( 4, 5, 1, 4, grid0)
-    cost += move( 5, 5, 2, 9, grid0)
-    cost += move( 1, 4, 5, 5, grid0)
-    cost += move( 2, 7, 4, 5, grid0)
-    cost += move( 3, 7, 3, 5, grid0)
-    cost += move( 4, 7, 1, 6, grid0)
-    cost += move( 1, 10, 4, 7, grid0)
-    cost += move( 1, 6, 1, 8, grid0)
-    cost += move( 1, 3, 3, 7, grid0)
-    cost += move( 1, 2, 2, 7, grid0)
-    cost += move( 1, 1, 2, 5, grid0)
-    cost += move( 1, 8, 3, 3, grid0)
-    cost += move( 1, 11, 2, 3, grid0)
+    def legal_move( move, grid):
+        m = len(grid)
+        i, j, ii, jj = move
+        token = grid[i][j]
 
-    return cost
+        # illegal landing spot
+        if jj in inv_columns:
+            if jj != columns[token]:
+                return False
 
-    state0 = grid_to_state(nodes, grid0)
+            if ii == 1:
+                return False
 
-    grid1 = state_to_grid(state0, nodes, grid)
+            for iii in range(ii+1, m-1):
+                if grid[iii][jj] != token:
+                    return False
 
-    prnt(grid1)
+        if i == 1 and ii == 1: # I-route
+            return False
 
 
-    return cost
+
+        elif i == 1 and ii > 1: # L-route
+            if j < jj:
+                for jjj in range(j+1, jj+1):
+                    if grid[i][jjj] != '.':
+                        return False
+            elif j > jj:
+                for jjj in range(jj, j):
+                    if grid[i][jjj] != '.':
+                        return False
+            for iii in range(i+1, ii):
+                if grid[iii][jj] != '.':
+                    return False
+
+        elif i > 1 and ii == 1: # other L-route
+            if j < jj:
+                for jjj in range(j+1, jj+1):
+                    if grid[ii][jjj] != '.':
+                        return False
+            elif j > jj:
+                for jjj in range(jj, j):
+                    if grid[ii][jjj] != '.':
+                        return False
+            for iii in range(ii, i):
+                if grid[iii][j] != '.':
+                    return False
+
+        elif i > 1 and ii > 1: # U-route
+            if j < jj:
+                for jjj in range(j+1, jj+1):
+                    if grid[1][jjj] != '.':
+                        return False
+            elif j > jj:
+                for jjj in range(jj, j):
+                    if grid[1][jjj] != '.':
+                        return False
+            for iii in range(1, i):
+                if grid[iii][j] != '.':
+                    return False
+
+            for iii in range(1, ii+1):
+                if grid[iii][jj] != '.':
+                    return False
+
+        return True
+
+
+    def legal_moves(grid):
+        for move in potential_moves(grid):
+            if legal_move(move, grid):
+                yield move
+
+    def adjacent_states(u):
+        grid0 = state_to_grid(u, nodes, grid)
+        for mv in legal_moves(grid0):
+            grid1 = deepcopy(grid0)
+            weight = move( *mv, grid1)
+            v = grid_to_state(nodes, grid1)
+            yield v, weight
+
+
+
+    start = grid_to_state(nodes, grid)
+
+    grid_end = deepcopy(grid)
+    for k, v in columns.items():
+        for i in range(2, m-1):
+            grid_end[i][v] = k
+    end = grid_to_state(nodes, grid_end)
+
+    def heuristic(u):
+        grid0 = state_to_grid(u, nodes, grid)
+        res = 0
+        inplace = defaultdict(int)
+        out_of_place_in_column = defaultdict(int)
+        for k, j in columns.item():
+            for i in range(m-2, 1, -1):
+                if grid0[i][j] == k:
+                    inplace[k] += 1
+                else:
+                    break
+
+        for k, j in columns.item():
+            for i in range(m-2-inplace[k], 1, -1):
+                if grid0[i][j] == k:
+                    out_of_place_in_column[k] += 1
+
+
+        
+
+        for i in range(m):
+            for j in range(n):
+                token = grid0[i][j]
+
+                if grid0[i][j] in 'ABCD':
+                    if columns[token] == j and ':
+                    res += 1
+        return res
+
+    dist = { start : 0 }
+    came_from = { start : None }
+
+    q = [ (0, start) ]
+    heapq.heapify(q)
+
+    count = 0
+    while q:
+        if count % 10000 == 0:
+            print(count, len(q), q[0][0], ''.join(q[0][1]))
+        count += 1
+        _, u = heapq.heappop(q)
+        if u == end:
+            break
+        for v, weight in adjacent_states(u):
+            alt = dist[u] + weight
+            if v not in dist or alt < dist[v]:
+                dist[v] = alt
+                priority = alt + heuristic(v)
+                heapq.heappush(q, (priority, v))
+                came_from[v] = u
+
+    assert end in dist
+    print(count, len(q), dist[u], ''.join(u))
+
+    u = end
+    path = [u]
+    while u != start:
+        u = came_from[u]
+        path.append(u)
+    path.reverse()
+
+    for u in path:
+        grid0 = state_to_grid(u, nodes, grid)
+        prnt(grid0)
+        print()
+
+    return dist[end]
+
+def xtest_A():
+    txt = \
+"""#############
+#...........#
+###B#C#B#D###
+  #A#D#C#A#
+  #########
+"""
+    print(main(txt))
+
+def xtest_B():
+    txt = \
+"""#############
+#...........#
+###D#A#D#C###
+  #C#A#B#B#
+  #########
+"""
+    print(main(txt))
 
 def test_AA():
     txt = \
